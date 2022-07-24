@@ -10,4 +10,4 @@ authors = ["Phineas Jensen"]
 clap = { version = "3.2.14", features = ["derive"] }
 quick-xml = "0.23.0"
 ureq = "2.5.0"
-#rusqlite = { version = "0.28.0", features = ["bundled"] }
+rusqlite = { version = "0.28.0", features = ["bundled"] }
