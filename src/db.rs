@@ -15,8 +15,9 @@ pub fn initialize() -> Result<()> {
             id          INTEGER PRIMARY KEY AUTOINCREMENT,
             url         TEXT UNIQUE,
             title       TEXT,
-            description TEXT
-            )",
+            description TEXT,
+            created_at  INTEGER
+        )",
         (),
     )?;
     Ok(())
@@ -42,8 +43,10 @@ pub fn add_bookmark(
         println!("A bookmark for that URL already exists:");
         Ok(bookmark)
     } else {
+        println!("Added bookmark:");
         conn.execute(
-            "INSERT INTO bookmark (url, title, description) VALUES (?, ?, ?)",
+            "INSERT INTO bookmark (url, title, description, created_at)
+                VALUES (?, ?, ?, datetime('now'))",
             (&url, title, description),
         )?;
         Ok(Bookmark {
