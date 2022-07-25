@@ -1,6 +1,6 @@
 use clap::{Parser, Subcommand};
 
-use cli::commands::{add, init};
+use cli::commands::{add, find, init};
 
 #[derive(Parser)]
 #[clap(author, version, about)]
@@ -14,15 +14,22 @@ enum Command {
     Add {
         #[clap(value_parser)]
         url: String,
+        #[clap(short, long, value_parser)]
+        tags: Vec<String>,
     },
     Init,
+    Search {
+        #[clap(value_parser)]
+        query: String,
+    },
 }
 
 fn main() -> Result<(), ureq::Error> {
     let args = Args::parse();
     match &args.command {
         Command::Init => init(),
-        Command::Add { url } => add(url)?,
+        Command::Add { url, tags } => add(url, tags)?,
+        Command::Search { query } => find(query),
     };
     Ok(())
 }
