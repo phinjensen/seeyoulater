@@ -10,7 +10,7 @@ pub fn init() {
     }
 }
 
-pub fn add(url: &String, tags: &Vec<String>) -> Result<(), ureq::Error> {
+pub fn add(url: &String, tags: &Vec<String>) {
     match add_bookmark(
         url,
         get_metadata(url).unwrap_or(Metadata {
@@ -22,11 +22,10 @@ pub fn add(url: &String, tags: &Vec<String>) -> Result<(), ureq::Error> {
         Ok(bookmark) => println!("{}", bookmark),
         Err(e) => println!("Error adding bookmark to database: {:?}", e),
     }
-    Ok(())
 }
 
-pub fn find(query: &String) {
-    match search_bookmarks(query) {
+pub fn find(query: &String, tags: &Vec<String>) {
+    match search_bookmarks(query, tags) {
         Ok(bookmarks) => {
             println!(
                 "Found {} {}.",
@@ -38,7 +37,7 @@ pub fn find(query: &String) {
                 }
             );
             for bookmark in bookmarks {
-                println!("{}", bookmark);
+                println!("{}\n", bookmark);
             }
         }
         Err(e) => println!("Error searching database: {:?}", e),

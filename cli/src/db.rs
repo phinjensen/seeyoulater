@@ -1,7 +1,7 @@
 use core::fmt;
 use std::fmt::{Display, Formatter};
 
-use rusqlite::{Connection, Result, Transaction};
+use rusqlite::{Connection, Result, ToSql, Transaction};
 
 use crate::web::Metadata;
 
@@ -20,9 +20,13 @@ impl Display for Bookmark {
         if let Some(title) = &self.title {
             writeln!(
                 f,
-                "\x1b[1;32m{}\x1b[m [\x1b[33m{}\x1b[m]",
+                "\x1b[1;32m{}\x1b[m {}",
                 title,
-                &self.tags.join("\x1b[m,\x1b[33m")
+                if self.tags.len() > 0 {
+                    format!("[\x1b[33m{}\x1b[m]", &self.tags.join("\x1b[m,\x1b[33m"))
+                } else {
+                    String::from("")
+                }
             )?;
         };
         result = write!(f, "\x1b[36m{}\x1b[m", &self.url);
@@ -80,7 +84,7 @@ pub fn add_bookmark(url: &String, metadata: Metadata, tags: &Vec<String>) -> Res
     let bookmark = tx.query_row(
         "SELECT id, url, title, description, group_concat(tag_name)
             FROM bookmark
-            JOIN bookmark_tag ON bookmark_tag.bookmark_id = bookmark.id
+            LEFT JOIN bookmark_tag ON bookmark_tag.bookmark_id = bookmark.id
             WHERE url = ?",
         [&url],
         |row| {
@@ -120,26 +124,46 @@ pub fn add_bookmark(url: &String, metadata: Metadata, tags: &Vec<String>) -> Res
     }
 }
 
-pub fn search_bookmarks(query: &String) -> Result<Vec<Bookmark>> {
+pub fn search_bookmarks(query: &String, tags: &Vec<String>) -> Result<Vec<Bookmark>> {
     let conn = Connection::open("./seeyoulater.db")?;
-    let mut stmt = conn.prepare(
+    // TODO: Come up with some ranking/ordering. Perhaps:
+    // https://www.sqlite.org/fts3.html
+    // TODO: Make search queries optional, to allow searching by tag only
+    let mut select = String::from(
         "SELECT id, url, title, description, group_concat(tag_name)
             FROM bookmark
-            JOIN bookmark_tag ON bookmark_tag.bookmark_id = bookmark.id
-            WHERE url LIKE '%' || ? || '%'",
-    )?;
+            LEFT JOIN bookmark_tag ON bookmark_tag.bookmark_id = bookmark.id
+            WHERE (
+                url LIKE '%' || ? || '%'
+                OR title LIKE '%' || ? || '%'
+                OR description LIKE '%' || ? || '%'
+            )",
+    );
+    let mut params: Vec<&dyn ToSql> = vec![&query, &query, &query];
+    if tags.len() > 0 {
+        select = select
+            + &format!(
+                " AND id IN (SELECT bookmark_id FROM bookmark_tag WHERE tag_name IN ({}))",
+                &"?,".repeat(tags.len())[..tags.len() * 2 - 1]
+            );
+        for tag in tags {
+            params.push(tag as &dyn ToSql);
+        }
+    }
+    select += &" GROUP BY id";
+    let mut stmt = conn.prepare(&select)?;
     let bookmarks = stmt
-        .query_map([&query], |row| {
+        .query_map(&params[..], |row| {
             Ok(Bookmark {
                 id: row.get(0)?,
                 url: row.get(1)?,
                 title: row.get(2)?,
                 description: row.get(3)?,
-                tags: row
-                    .get::<_, String>(4)?
-                    .split(',')
-                    .map(|t| t.to_string())
-                    .collect(),
+                tags: if let Some(s) = row.get::<_, Option<String>>(4)? {
+                    s.split(',').map(|t| t.to_string()).collect()
+                } else {
+                    Vec::new()
+                },
             })
         })?
         .map(|b| b.unwrap())
