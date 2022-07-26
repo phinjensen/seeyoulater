@@ -10,6 +10,7 @@ pub struct Metadata {
     pub description: Option<String>,
 }
 
+// TODO: Handle HTML entities (I'm seeing &gt; and &lt; and such)
 pub fn get_metadata(url: &String) -> Result<Metadata, ureq::Error> {
     let mut result = Metadata {
         title: None,

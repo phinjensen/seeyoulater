@@ -18,6 +18,8 @@ impl Display for Bookmark {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let mut result;
         if let Some(title) = &self.title {
+            // TODO: Use a cross-platform library for term colors. Or roll our own, if most have
+            // too many dependencies
             writeln!(
                 f,
                 "\x1b[1;32m{}\x1b[m {}",

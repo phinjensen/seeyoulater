@@ -3,6 +3,10 @@ use crate::{
     web::{get_metadata, Metadata},
 };
 
+// TODO: Automatic database initialization and updating
+// Initialization is easy, but subsequent updates will be a little trickier.
+// Probably just wanna do numbered migrations and have a meta table in the DB
+// with name/value columns to keep track of the latest migration done.
 pub fn init() {
     match db::initialize() {
         Ok(_) => println!("Database initialized!"),

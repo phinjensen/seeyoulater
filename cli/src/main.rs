@@ -24,6 +24,11 @@ enum Command {
         #[clap(short, long, value_parser)]
         tags: Vec<String>,
     },
+    // TODO: Make a list command (for listing all bookmarks or all tags)
+    // TODO: Consider what (if any) the "default" command should be, e.g.:
+    //      syl -t blog https://phinjensen.com
+    // Should this add a bookmark with the tab "blog" or search for bookmarks
+    // at https://phinjensen.com with the tag "blog"?
 }
 
 fn main() {
