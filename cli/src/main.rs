@@ -1,6 +1,9 @@
 use clap::{Parser, Subcommand};
 
-use syl::commands::{add, find, init};
+use syl::{
+    commands::{add, find, init},
+    db::Database,
+};
 
 #[derive(Parser)]
 #[clap(author, version, about)]
@@ -33,9 +36,10 @@ enum Command {
 
 fn main() {
     let args = Args::parse();
+    let mut db = Database::open("./seeyoulater.db").unwrap();
     match &args.command {
-        Command::Init => init(),
-        Command::Add { url, tags } => add(url, tags),
-        Command::Search { query, tags } => find(query, tags),
+        Command::Init => init(db),
+        Command::Add { url, tags } => add(&mut db, url, tags),
+        Command::Search { query, tags } => find(db, query, tags),
     };
 }

@@ -1,21 +1,17 @@
 use crate::{
-    db::{self, add_bookmark, search_bookmarks},
+    db::Database,
     web::{get_metadata, Metadata},
 };
 
-// TODO: Automatic database initialization and updating
-// Initialization is easy, but subsequent updates will be a little trickier.
-// Probably just wanna do numbered migrations and have a meta table in the DB
-// with name/value columns to keep track of the latest migration done.
-pub fn init() {
-    match db::initialize() {
+pub fn init(db: Database) {
+    match db.initialize() {
         Ok(_) => println!("Database initialized!"),
         Err(e) => println!("Error initializing database: {}", e),
     }
 }
 
-pub fn add(url: &String, tags: &Vec<String>) {
-    match add_bookmark(
+pub fn add(db: &mut Database, url: &String, tags: &Vec<String>) {
+    match db.add_bookmark(
         url,
         get_metadata(url).unwrap_or(Metadata {
             title: None,
@@ -28,8 +24,8 @@ pub fn add(url: &String, tags: &Vec<String>) {
     }
 }
 
-pub fn find(query: &String, tags: &Vec<String>) {
-    match search_bookmarks(query, tags) {
+pub fn find(db: Database, query: &String, tags: &Vec<String>) {
+    match db.search_bookmarks(query, tags) {
         Ok(bookmarks) => {
             println!(
                 "Found {} {}.",
