@@ -1,6 +1,6 @@
 use clap::{Parser, Subcommand};
 
-use cli::commands::{add, find, init};
+use syl::commands::{add, find, init};
 
 #[derive(Parser)]
 #[clap(author, version, about)]
