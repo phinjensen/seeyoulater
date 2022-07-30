@@ -3,7 +3,7 @@ use std::fmt::{Display, Formatter};
 
 use rusqlite::{Connection, Result, ToSql, Transaction};
 
-use crate::web::Metadata;
+use crate::{migrations::MIGRATIONS, web::Metadata};
 
 #[derive(Debug)]
 pub struct Bookmark {
@@ -13,6 +13,8 @@ pub struct Bookmark {
     pub description: Option<String>,
     pub tags: Vec<String>,
 }
+
+const CURRENT_VERSION: usize = 0;
 
 impl Display for Bookmark {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
@@ -44,39 +46,60 @@ pub struct Database {
 }
 
 impl Database {
-    // TODO: Automatic database initialization and updating
-    // Initialization is easy, but subsequent updates will be a little trickier.
-    // Probably just wanna do numbered migrations and have a meta table in the DB
-    // with name/value columns to keep track of the latest migration done.
     pub fn open(path: &str) -> Result<Self> {
-        let conn = Connection::open(path)?;
-        Ok(Database { connection: conn })
+        let connection = Connection::open(path)?;
+        let db = Database { connection };
+        match db.connection.query_row(
+            "SELECT value FROM syl_meta WHERE key='database_version'",
+            (),
+            |row| row.get::<usize, String>(0),
+        ) {
+            Ok(db_version) => {
+                if let Ok(version) = db_version.parse::<usize>() {
+                    db.migrate(version)?;
+                } else {
+                    panic!("Error parsing database version number! Your database may be corrupt.");
+                }
+            }
+            Err(_) => {
+                db.initialize()?;
+            }
+        }
+        Ok(db)
     }
 
     pub fn initialize(&self) -> Result<()> {
-        self.connection.execute(
-            "CREATE TABLE bookmark (
-            id          INTEGER PRIMARY KEY AUTOINCREMENT,
-            url         TEXT UNIQUE,
-            title       TEXT,
-            description TEXT,
-            created_at  INTEGER
-        )",
-            (),
+        println!("Initializing database...");
+        self.connection.execute_batch(
+            format!(
+                "
+            BEGIN;
+            CREATE TABLE bookmark (
+                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                url             TEXT UNIQUE,
+                title           TEXT,
+                description     TEXT,
+                created_at      INTEGER
+            );
+            CREATE TABLE tag (
+                name            TEXT PRIMARY KEY
+            );
+            CREATE TABLE bookmark_tag (
+                bookmark_id     INTEGER REFERENCES bookmark (id),
+                tag_name        TEXT REFERENCES tag (name)
+            );
+            CREATE TABLE syl_meta (
+                key             TEXT UNIQUE,
+                value           TEXT
+            );
+            INSERT INTO syl_meta VALUES ('database_version', {});
+            COMMIT;
+            ",
+                CURRENT_VERSION
+            )
+            .as_str(),
         )?;
-        self.connection.execute(
-            "CREATE TABLE tag (
-            name        TEXT PRIMARY KEY
-        )",
-            (),
-        )?;
-        self.connection.execute(
-            "CREATE TABLE bookmark_tag (
-            bookmark_id     INTEGER REFERENCES bookmark (id),
-            tag_name        TEXT REFERENCES tag (name)
-        )",
-            (),
-        )?;
+        self.migrate(CURRENT_VERSION)?;
         Ok(())
     }
 
@@ -174,6 +197,17 @@ impl Database {
             .map(|b| b.unwrap())
             .collect();
         Ok(bookmarks)
+    }
+
+    // TODO: Move all diagnostic info to STDERR so STDOUT is predicatble
+    pub fn migrate(&self, current_version: usize) -> Result<()> {
+        if current_version < MIGRATIONS.len() {
+            for i in current_version..MIGRATIONS.len() {
+                println!("Migrating database to version {}", i + 1);
+                self.connection.execute_batch(MIGRATIONS[i])?;
+            }
+        }
+        Ok(())
     }
 }
 
