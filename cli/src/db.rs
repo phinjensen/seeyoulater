@@ -16,28 +16,35 @@ pub struct Bookmark {
 
 const CURRENT_VERSION: usize = 0;
 
+impl Bookmark {
+    fn format_tags(&self) -> String {
+        if self.tags.len() > 0 {
+            format!("[\x1b[33m{}\x1b[m]", &self.tags.join("\x1b[m,\x1b[33m"))
+        } else {
+            String::from("")
+        }
+    }
+
+    fn write_url(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "\x1b[36m{}\x1b[m", &self.url)
+    }
+}
+
 impl Display for Bookmark {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut result;
         if let Some(title) = &self.title {
             // TODO: Use a cross-platform library for term colors. Or roll our own, if most have
             // too many dependencies
-            writeln!(
-                f,
-                "\x1b[1;32m{}\x1b[m {}",
-                title,
-                if self.tags.len() > 0 {
-                    format!("[\x1b[33m{}\x1b[m]", &self.tags.join("\x1b[m,\x1b[33m"))
-                } else {
-                    String::from("")
-                }
-            )?;
-        };
-        result = write!(f, "\x1b[36m{}\x1b[m", &self.url);
+            write!(f, "\x1b[1;32m{}\x1b[m", title)?;
+        } else {
+            write!(f, "\x1b[1;32m{}\x1b[m", &self.url)?;
+        }
+        writeln!(f, " {}", self.format_tags())?;
+        self.write_url(f)?;
         if let Some(description) = &self.description {
-            result = write!(f, "\n{}", description);
+            write!(f, "\n{}", description)?;
         };
-        result
+        Ok(())
     }
 }
 
@@ -153,21 +160,28 @@ impl Database {
         }
     }
 
-    pub fn search_bookmarks(&self, query: &String, tags: &Vec<String>) -> Result<Vec<Bookmark>> {
+    pub fn search_bookmarks(
+        &self,
+        query: &Option<String>,
+        tags: &Vec<String>,
+    ) -> Result<Vec<Bookmark>> {
         // TODO: Come up with some ranking/ordering. Perhaps:
         // https://www.sqlite.org/fts3.html
         // TODO: Make search queries optional, to allow searching by tag only
         let mut select = String::from(
             "SELECT id, url, title, description, group_concat(tag_name)
             FROM bookmark
-            LEFT JOIN bookmark_tag ON bookmark_tag.bookmark_id = bookmark.id
-            WHERE (
+            LEFT JOIN bookmark_tag ON bookmark_tag.bookmark_id = bookmark.id",
+        );
+        let mut params: Vec<&dyn ToSql> = Vec::new();
+        if let Some(query) = query {
+            select += " WHERE (
                 url LIKE '%' || ? || '%'
                 OR title LIKE '%' || ? || '%'
                 OR description LIKE '%' || ? || '%'
-            )",
-        );
-        let mut params: Vec<&dyn ToSql> = vec![&query, &query, &query];
+            )";
+            params.extend_from_slice(&[query, query, query]);
+        }
         if tags.len() > 0 {
             select = select
                 + &format!(

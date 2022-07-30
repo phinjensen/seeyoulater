@@ -17,7 +17,7 @@ pub fn add(db: &mut Database, url: &String, tags: &Vec<String>) {
     }
 }
 
-pub fn find(db: Database, query: &String, tags: &Vec<String>) {
+pub fn find(db: Database, query: &Option<String>, tags: &Vec<String>) {
     match db.search_bookmarks(query, tags) {
         Ok(bookmarks) => {
             println!(
@@ -29,8 +29,11 @@ pub fn find(db: Database, query: &String, tags: &Vec<String>) {
                     "bookmarks"
                 }
             );
-            for bookmark in bookmarks {
-                println!("{}\n", bookmark);
+            for (i, bookmark) in bookmarks.iter().enumerate() {
+                if i > 0 {
+                    print!("\n");
+                }
+                println!("{bookmark}");
             }
         }
         Err(e) => eprintln!("Error searching database: {:?}", e),

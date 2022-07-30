@@ -22,7 +22,7 @@ enum Command {
     },
     Search {
         #[clap(value_parser)]
-        query: String,
+        query: Option<String>,
         #[clap(short, long, value_parser)]
         tags: Vec<String>,
     },
