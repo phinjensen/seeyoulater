@@ -69,7 +69,7 @@ impl Database {
     }
 
     pub fn initialize(&self) -> Result<()> {
-        println!("Initializing database...");
+        eprintln!("Initializing database...");
         self.connection.execute_batch(
             format!(
                 "

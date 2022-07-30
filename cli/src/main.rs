@@ -1,7 +1,7 @@
 use clap::{Parser, Subcommand};
 
 use syl::{
-    commands::{add, find, init},
+    commands::{add, find},
     db::Database,
 };
 
@@ -20,7 +20,6 @@ enum Command {
         #[clap(short, long, value_parser)]
         tags: Vec<String>,
     },
-    Init,
     Search {
         #[clap(value_parser)]
         query: String,
@@ -38,7 +37,6 @@ fn main() {
     let args = Args::parse();
     let mut db = Database::open("./seeyoulater.db").unwrap();
     match &args.command {
-        Command::Init => init(db),
         Command::Add { url, tags } => add(&mut db, url, tags),
         Command::Search { query, tags } => find(db, query, tags),
     };

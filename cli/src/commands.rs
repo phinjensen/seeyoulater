@@ -3,13 +3,6 @@ use crate::{
     web::{get_metadata, Metadata},
 };
 
-pub fn init(db: Database) {
-    match db.initialize() {
-        Ok(_) => println!("Database initialized!"),
-        Err(e) => println!("Error initializing database: {}", e),
-    }
-}
-
 pub fn add(db: &mut Database, url: &String, tags: &Vec<String>) {
     match db.add_bookmark(
         url,
