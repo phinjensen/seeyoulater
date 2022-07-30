@@ -14,19 +14,28 @@ struct Args {
 
 #[derive(Subcommand)]
 enum Command {
+    #[clap(visible_alias = "a")]
+    /// Add a bookmark
     Add {
+        /// The URL to bookmark
         #[clap(value_parser)]
         url: String,
+        /// Tag(s) to add to this bookmark; use this option multiple times to add multiple tags
         #[clap(short, long, value_parser)]
         tags: Vec<String>,
     },
+    #[clap(visible_alias = "get")]
+    /// Search bookmarks
     Search {
+        /// A word or phrase to match in the URL, title, or description
         #[clap(value_parser)]
         query: Option<String>,
+        // TODO: Add option to differentiate search by *any* tag or *all* tags
+        /// Limit search to tag(s); use this option multiple times to specify multiple tags
         #[clap(short, long, value_parser)]
         tags: Vec<String>,
     },
-    // TODO: Make a list command (for listing all bookmarks or all tags)
+    // TODO: Make a list command (for listing all bookmarks—now handled by the search command—or all tags)
     // TODO: Consider what (if any) the "default" command should be, e.g.:
     //      syl -t blog https://phinjensen.com
     // Should this add a bookmark with the tab "blog" or search for bookmarks
