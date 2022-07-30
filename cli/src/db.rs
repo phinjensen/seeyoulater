@@ -199,11 +199,10 @@ impl Database {
         Ok(bookmarks)
     }
 
-    // TODO: Move all diagnostic info to STDERR so STDOUT is predicatble
     pub fn migrate(&self, current_version: usize) -> Result<()> {
         if current_version < MIGRATIONS.len() {
             for i in current_version..MIGRATIONS.len() {
-                println!("Migrating database to version {}", i + 1);
+                eprintln!("Migrating database to version {}", i + 1);
                 self.connection.execute_batch(MIGRATIONS[i])?;
             }
         }

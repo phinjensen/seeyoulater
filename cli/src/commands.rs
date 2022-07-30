@@ -13,7 +13,7 @@ pub fn add(db: &mut Database, url: &String, tags: &Vec<String>) {
         tags,
     ) {
         Ok(bookmark) => println!("{}", bookmark),
-        Err(e) => println!("Error adding bookmark to database: {:?}", e),
+        Err(e) => eprintln!("Error adding bookmark to database: {:?}", e),
     }
 }
 
@@ -33,6 +33,6 @@ pub fn find(db: Database, query: &String, tags: &Vec<String>) {
                 println!("{}\n", bookmark);
             }
         }
-        Err(e) => println!("Error searching database: {:?}", e),
+        Err(e) => eprintln!("Error searching database: {:?}", e),
     }
 }
