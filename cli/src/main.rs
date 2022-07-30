@@ -2,6 +2,7 @@ use clap::{Parser, Subcommand};
 
 use syl::{
     commands::{add, find},
+    config::Config,
     db::Database,
 };
 
@@ -44,7 +45,8 @@ enum Command {
 
 fn main() {
     let args = Args::parse();
-    let mut db = Database::open("./seeyoulater.db").unwrap();
+    let config = Config::new();
+    let mut db = Database::open(&config.database()).unwrap();
     match &args.command {
         Command::Add { url, tags } => add(&mut db, url, tags),
         Command::Search { query, tags } => find(db, query, tags),
