@@ -1,4 +1,4 @@
-use core::fmt;
+use core::{fmt, num};
 use std::fmt::{Display, Formatter};
 
 use rusqlite::{Connection, Result, ToSql, Transaction};
@@ -93,10 +93,11 @@ impl Database {
             );
             CREATE TABLE bookmark_tag (
                 bookmark_id     INTEGER REFERENCES bookmark (id),
-                tag_name        TEXT REFERENCES tag (name)
+                tag_name        TEXT REFERENCES tag (name),
+                PRIMARY KEY (bookmark_id, tag_name)
             );
             CREATE TABLE syl_meta (
-                key             TEXT UNIQUE,
+                key             TEXT PRIMARY KEY,
                 value           TEXT
             );
             INSERT INTO syl_meta VALUES ('database_version', {});
@@ -164,18 +165,19 @@ impl Database {
         &self,
         query: &Option<String>,
         tags: &Vec<String>,
+        all_tags: bool,
     ) -> Result<Vec<Bookmark>> {
         // TODO: Come up with some ranking/ordering. Perhaps:
         // https://www.sqlite.org/fts3.html
-        // TODO: Make search queries optional, to allow searching by tag only
         let mut select = String::from(
             "SELECT id, url, title, description, group_concat(tag_name)
             FROM bookmark
-            LEFT JOIN bookmark_tag ON bookmark_tag.bookmark_id = bookmark.id",
+            LEFT JOIN bookmark_tag ON bookmark_tag.bookmark_id = bookmark.id
+            WHERE 1",
         );
         let mut params: Vec<&dyn ToSql> = Vec::new();
         if let Some(query) = query {
-            select += " WHERE (
+            select += " AND (
                 url LIKE '%' || ? || '%'
                 OR title LIKE '%' || ? || '%'
                 OR description LIKE '%' || ? || '%'
@@ -183,11 +185,20 @@ impl Database {
             params.extend_from_slice(&[query, query, query]);
         }
         if tags.len() > 0 {
-            select = select
-                + &format!(
-                    " AND id IN (SELECT bookmark_id FROM bookmark_tag WHERE tag_name IN ({}))",
-                    &"?,".repeat(tags.len())[..tags.len() * 2 - 1]
-                );
+            if all_tags {
+                select = select
+                    + &format!(
+                        " AND id IN (SELECT bookmark_id FROM bookmark_tag WHERE tag_name IN ({}) GROUP BY bookmark_id HAVING count(bookmark_id) = {})",
+                        &"?,".repeat(tags.len())[..tags.len() * 2 - 1],
+                        tags.len()
+                    );
+            } else {
+                select = select
+                    + &format!(
+                        " AND id IN (SELECT bookmark_id FROM bookmark_tag WHERE tag_name IN ({}))",
+                        &"?,".repeat(tags.len())[..tags.len() * 2 - 1]
+                    );
+            }
             for tag in tags {
                 params.push(tag as &dyn ToSql);
             }

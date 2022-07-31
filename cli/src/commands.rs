@@ -17,8 +17,8 @@ pub fn add(db: &mut Database, url: &String, tags: &Vec<String>) {
     }
 }
 
-pub fn find(db: Database, query: &Option<String>, tags: &Vec<String>) {
-    match db.search_bookmarks(query, tags) {
+pub fn find(db: Database, query: &Option<String>, tags: &Vec<String>, all_tags: bool) {
+    match db.search_bookmarks(query, tags, all_tags) {
         Ok(bookmarks) => {
             println!(
                 "Found {} {}.",

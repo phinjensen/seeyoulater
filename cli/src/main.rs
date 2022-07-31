@@ -31,10 +31,12 @@ enum Command {
         /// A word or phrase to match in the URL, title, or description
         #[clap(value_parser)]
         query: Option<String>,
-        // TODO: Add option to differentiate search by *any* tag or *all* tags
         /// Limit search to tag(s); use this option multiple times to specify multiple tags
-        #[clap(short, long, value_parser)]
+        #[clap(short, long = "tag", value_parser)]
         tags: Vec<String>,
+        /// Match only bookmarks that contain *all* tags provided with -t (default behavior matches *any* tag provided)
+        #[clap(short, long, action)]
+        all_tags: bool,
     },
     // TODO: Make a list command (for listing all bookmarks—now handled by the search command—or all tags)
     // TODO: Consider what (if any) the "default" command should be, e.g.:
@@ -49,6 +51,10 @@ fn main() {
     let mut db = Database::open(&config.database()).unwrap();
     match &args.command {
         Command::Add { url, tags } => add(&mut db, url, tags),
-        Command::Search { query, tags } => find(db, query, tags),
+        Command::Search {
+            query,
+            tags,
+            all_tags,
+        } => find(db, query, tags, *all_tags),
     };
 }
