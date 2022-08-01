@@ -33,9 +33,10 @@ pub fn get_metadata(url: &String) -> Result<Metadata, ureq::Error> {
                                 // No need to unescape the key of a meta tag, because we're only
                                 // interested in a specific set of possible keys
                                 from_utf8(attr.key).unwrap().to_lowercase(),
-                                from_utf8(&attr.to_owned().unescaped_value().unwrap_or(attr.value))
-                                    .unwrap()
-                                    .to_string(),
+                                String::from_utf8_lossy(
+                                    &attr.to_owned().unescaped_value().unwrap_or(attr.value),
+                                )
+                                .to_string(),
                             )
                         })
                         .collect();

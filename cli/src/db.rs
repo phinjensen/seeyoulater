@@ -1,7 +1,7 @@
-use core::{fmt, num};
+use core::fmt;
 use std::fmt::{Display, Formatter};
 
-use rusqlite::{Connection, Result, ToSql, Transaction};
+use rusqlite::{Connection, Error::QueryReturnedNoRows, Result, Row, ToSql, Transaction};
 
 use crate::{migrations::MIGRATIONS, web::Metadata};
 
@@ -17,6 +17,20 @@ pub struct Bookmark {
 const CURRENT_VERSION: usize = 0;
 
 impl Bookmark {
+    fn from_row(row: &Row<'_>) -> Result<Self> {
+        Ok(Bookmark {
+            id: row.get(0)?,
+            url: row.get(1)?,
+            title: row.get(2)?,
+            description: row.get(3)?,
+            tags: if let Some(s) = row.get::<_, Option<String>>(4)? {
+                s.split(',').map(|t| t.to_string()).collect()
+            } else {
+                Vec::new()
+            },
+        })
+    }
+
     fn format_tags(&self) -> String {
         if self.tags.len() > 0 {
             format!("[\x1b[33m{}\x1b[m]", &self.tags.join("\x1b[m,\x1b[33m"))
@@ -124,40 +138,34 @@ impl Database {
             LEFT JOIN bookmark_tag ON bookmark_tag.bookmark_id = bookmark.id
             WHERE url = ?",
             [&url],
-            |row| {
-                Ok(Bookmark {
-                    id: row.get(0)?,
-                    url: row.get(1)?,
-                    title: row.get(2)?,
-                    description: row.get(3)?,
-                    tags: row
-                        .get::<_, String>(4)?
-                        .split(',')
-                        .map(|t| t.to_string())
-                        .collect(),
-                })
-            },
+            Bookmark::from_row,
         );
-        if let Ok(bookmark) = bookmark {
-            println!("A bookmark for that URL already exists:");
-            Ok(bookmark)
-        } else {
-            println!("Added bookmark:");
-            tx.execute(
-                "INSERT INTO bookmark (url, title, description, created_at)
+        match bookmark {
+            Ok(bookmark) => {
+                println!("A bookmark for that URL already exists:");
+                Ok(bookmark)
+            }
+            Err(QueryReturnedNoRows) => {
+                println!("Added bookmark:");
+                tx.execute(
+                    "INSERT INTO bookmark (url, title, description, created_at)
                 VALUES (?, ?, ?, datetime('now'))",
-                (&url, &metadata.title, &metadata.description),
-            )?;
-            let id = tx.last_insert_rowid();
-            add_tags(&tx, id, tags)?;
-            tx.commit()?;
-            Ok(Bookmark {
-                id,
-                url: url.to_string(),
-                title: metadata.title,
-                description: metadata.description,
-                tags: tags.to_vec(),
-            })
+                    (&url, &metadata.title, &metadata.description),
+                )?;
+                let id = tx.last_insert_rowid();
+                add_tags(&tx, id, tags)?;
+                tx.commit()?;
+                Ok(Bookmark {
+                    id,
+                    url: url.to_string(),
+                    title: metadata.title,
+                    description: metadata.description,
+                    tags: tags.to_vec(),
+                })
+            }
+            Err(e) => {
+                panic!("Error adding new bookmark: {}", e);
+            }
         }
     }
 
@@ -206,19 +214,7 @@ impl Database {
         select += &" GROUP BY id";
         let mut stmt = self.connection.prepare(&select)?;
         let bookmarks = stmt
-            .query_map(&params[..], |row| {
-                Ok(Bookmark {
-                    id: row.get(0)?,
-                    url: row.get(1)?,
-                    title: row.get(2)?,
-                    description: row.get(3)?,
-                    tags: if let Some(s) = row.get::<_, Option<String>>(4)? {
-                        s.split(',').map(|t| t.to_string()).collect()
-                    } else {
-                        Vec::new()
-                    },
-                })
-            })?
+            .query_map(&params[..], Bookmark::from_row)?
             .map(|b| b.unwrap())
             .collect();
         Ok(bookmarks)
