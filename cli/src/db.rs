@@ -223,8 +223,21 @@ impl Database {
         Ok(bookmarks)
     }
 
-    pub fn get_tags(&self) -> Result<Vec<(String, usize)>> {
-        let mut stmt = self.connection.prepare("SELECT name, count(bookmark_id) FROM tag JOIN bookmark_tag ON bookmark_tag.tag_name=name GROUP BY name")?;
+    pub fn get_tags(&self, sort_by_count: bool, reverse: bool) -> Result<Vec<(String, usize)>> {
+        let mut stmt = self.connection.prepare(
+            format!(
+                "
+            SELECT name, count(bookmark_id) as count
+            FROM tag
+            JOIN bookmark_tag ON bookmark_tag.tag_name=name
+            GROUP BY name
+            ORDER BY {} {}
+            ",
+                if sort_by_count { "count" } else { "name" },
+                if reverse { "DESC" } else { "ASC" },
+            )
+            .as_str(),
+        )?;
         let tags = stmt
             .query_map([], |row| {
                 Ok((row.get::<_, String>(0)?, row.get::<_, usize>(1)?))

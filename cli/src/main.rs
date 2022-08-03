@@ -38,8 +38,12 @@ enum Command {
         #[clap(short, long, action)]
         all_tags: bool,
     },
-    Tags,
-    // TODO: Make a list command (for listing all bookmarks—now handled by the search command—or all tags)
+    Tags {
+        #[clap(short = 'c', long, action)]
+        sort_by_count: bool,
+        #[clap(short, long, action)]
+        reverse: bool,
+    },
     // TODO: Consider what (if any) the "default" command should be, e.g.:
     //      syl -t blog https://phinjensen.com
     // Should this add a bookmark with the tab "blog" or search for bookmarks
@@ -57,6 +61,9 @@ fn main() {
             tags,
             all_tags,
         } => find(db, query, tags, *all_tags),
-        Command::Tags => tags(db),
+        Command::Tags {
+            sort_by_count,
+            reverse,
+        } => tags(db, *sort_by_count, *reverse),
     };
 }

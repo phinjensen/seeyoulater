@@ -37,8 +37,8 @@ pub fn find(db: Database, query: &Option<String>, tags: &Vec<String>, all_tags: 
     }
 }
 
-pub fn tags(db: Database) {
-    match db.get_tags() {
+pub fn tags(db: Database, sort_by_count: bool, reverse: bool) {
+    match db.get_tags(sort_by_count, reverse) {
         Ok(tags) => {
             println!(
                 "Found {} {}.",
