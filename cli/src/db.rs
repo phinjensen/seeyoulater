@@ -220,7 +220,18 @@ impl Database {
         Ok(bookmarks)
     }
 
-    pub fn migrate(&self, current_version: usize) -> Result<()> {
+    pub fn get_tags(&self) -> Result<Vec<(String, usize)>> {
+        let mut stmt = self.connection.prepare("SELECT name, count(bookmark_id) FROM tag JOIN bookmark_tag ON bookmark_tag.tag_name=name GROUP BY name")?;
+        let tags = stmt
+            .query_map([], |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, usize>(1)?))
+            })?
+            .map(|t| t.unwrap())
+            .collect();
+        Ok(tags)
+    }
+
+    fn migrate(&self, current_version: usize) -> Result<()> {
         if current_version < MIGRATIONS.len() {
             for i in current_version..MIGRATIONS.len() {
                 eprintln!("Migrating database to version {}", i + 1);

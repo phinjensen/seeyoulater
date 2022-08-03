@@ -1,7 +1,7 @@
 use clap::{Parser, Subcommand};
 
 use syl::{
-    commands::{add, find},
+    commands::{add, find, tags},
     config::Config,
     db::Database,
 };
@@ -38,6 +38,7 @@ enum Command {
         #[clap(short, long, action)]
         all_tags: bool,
     },
+    Tags,
     // TODO: Make a list command (for listing all bookmarks—now handled by the search command—or all tags)
     // TODO: Consider what (if any) the "default" command should be, e.g.:
     //      syl -t blog https://phinjensen.com
@@ -56,5 +57,6 @@ fn main() {
             tags,
             all_tags,
         } => find(db, query, tags, *all_tags),
+        Command::Tags => tags(db),
     };
 }

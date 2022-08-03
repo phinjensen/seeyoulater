@@ -1,5 +1,6 @@
 use crate::{
     db::Database,
+    util::singular_plural,
     web::{get_metadata, Metadata},
 };
 
@@ -23,11 +24,7 @@ pub fn find(db: Database, query: &Option<String>, tags: &Vec<String>, all_tags: 
             println!(
                 "Found {} {}.",
                 bookmarks.len(),
-                if bookmarks.len() == 1 {
-                    "bookmark"
-                } else {
-                    "bookmarks"
-                }
+                singular_plural("bookmarks", bookmarks.len() as isize)
             );
             for (i, bookmark) in bookmarks.iter().enumerate() {
                 if i > 0 {
@@ -37,5 +34,29 @@ pub fn find(db: Database, query: &Option<String>, tags: &Vec<String>, all_tags: 
             }
         }
         Err(e) => eprintln!("Error searching database: {:?}", e),
+    }
+}
+
+pub fn tags(db: Database) {
+    match db.get_tags() {
+        Ok(tags) => {
+            println!(
+                "Found {} {}.",
+                tags.len(),
+                singular_plural("tags", tags.len() as isize)
+            );
+            if tags.len() > 0 {
+                let longest = tags.iter().map(|t| t.0.len()).max().unwrap();
+                for (tag, count) in tags {
+                    println!(
+                        "\x1b[33m{:longest$}\x1b[m ({} {})",
+                        tag,
+                        count,
+                        singular_plural("bookmarks", count as isize)
+                    );
+                }
+            }
+        }
+        Err(e) => eprintln!("Error finding tags: {:?}", e),
     }
 }
