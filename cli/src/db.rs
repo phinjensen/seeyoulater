@@ -133,10 +133,13 @@ impl Database {
     ) -> Result<Bookmark> {
         let tx = self.connection.transaction()?;
         let bookmark = tx.query_row(
-            "SELECT id, url, title, description, group_concat(tag_name)
-            FROM bookmark
-            LEFT JOIN bookmark_tag ON bookmark_tag.bookmark_id = bookmark.id
-            WHERE url = ?",
+            "
+                SELECT id, url, title, description, group_concat(tag_name)
+                FROM bookmark
+                LEFT JOIN bookmark_tag ON bookmark_tag.bookmark_id = bookmark.id
+                WHERE url = ?
+                GROUP BY tag_name
+                ",
             [&url],
             Bookmark::from_row,
         );
