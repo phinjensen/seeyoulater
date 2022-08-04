@@ -60,8 +60,6 @@ impl Bookmark {
 impl Display for Bookmark {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         if let Some(title) = &self.title {
-            // TODO: Use a cross-platform library for term colors if necessary.
-            // Or roll our own, if most have too many dependencies.
             write!(f, "{}", color(title, Color::BoldGreen))?;
         } else {
             write!(f, "{}", color(&self.url, Color::BoldGreen))?;
