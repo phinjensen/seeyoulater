@@ -1,9 +1,14 @@
 use core::fmt;
 use std::fmt::{Display, Formatter};
 
+use itertools::Itertools;
 use rusqlite::{Connection, Error::QueryReturnedNoRows, Result, Row, ToSql, Transaction};
 
-use crate::{migrations::MIGRATIONS, web::Metadata};
+use crate::{
+    colors::{color, Color},
+    migrations::MIGRATIONS,
+    web::Metadata,
+};
 
 #[derive(Debug)]
 pub struct Bookmark {
@@ -33,14 +38,22 @@ impl Bookmark {
 
     fn format_tags(&self) -> String {
         if self.tags.len() > 0 {
-            format!("[\x1b[33m{}\x1b[m]", &self.tags.join("\x1b[m,\x1b[33m"))
+            format!(
+                "[{}]",
+                &self
+                    .tags
+                    .iter()
+                    .map(|t| color(t, Color::Yellow))
+                    .intersperse(",".to_string())
+                    .collect::<String>()
+            )
         } else {
             String::from("")
         }
     }
 
     fn write_url(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "\x1b[36m{}\x1b[m", &self.url)
+        write!(f, "{}", color(&self.url, Color::Cyan))
     }
 }
 
@@ -49,9 +62,9 @@ impl Display for Bookmark {
         if let Some(title) = &self.title {
             // TODO: Use a cross-platform library for term colors if necessary.
             // Or roll our own, if most have too many dependencies.
-            write!(f, "\x1b[1;32m{}\x1b[m", title)?;
+            write!(f, "{}", color(title, Color::BoldGreen))?;
         } else {
-            write!(f, "\x1b[1;32m{}\x1b[m", &self.url)?;
+            write!(f, "{}", color(&self.url, Color::BoldGreen))?;
         }
         writeln!(f, " {}", self.format_tags())?;
         self.write_url(f)?;

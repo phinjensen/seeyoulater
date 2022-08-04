@@ -1,4 +1,5 @@
 use crate::{
+    colors::{color, Color},
     db::Database,
     util::singular_plural,
     web::{get_metadata, Metadata},
@@ -49,8 +50,8 @@ pub fn tags(db: Database, sort_by_count: bool, reverse: bool) {
                 let longest = tags.iter().map(|t| t.0.len()).max().unwrap();
                 for (tag, count) in tags {
                     println!(
-                        "\x1b[33m{:longest$}\x1b[m ({} {})",
-                        tag,
+                        "{:longest$} ({} {})",
+                        color(&tag, Color::Yellow),
                         count,
                         singular_plural("bookmarks", count as isize)
                     );
