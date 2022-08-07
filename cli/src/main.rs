@@ -1,10 +1,7 @@
 use clap::{Parser, Subcommand};
 
-use syl::{
-    commands::{add, find, tags},
-    config::Config,
-    db::Database,
-};
+use syl::commands::{add, find, tags};
+use syl_lib::{config::Config, db::Database};
 
 #[derive(Parser)]
 #[clap(author, version, about)]

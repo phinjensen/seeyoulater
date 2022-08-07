@@ -1,4 +1,4 @@
-use crate::{
+use syl_lib::{
     colors::{color, Color},
     db::Database,
     util::singular_plural,
