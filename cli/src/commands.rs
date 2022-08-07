@@ -1,33 +1,36 @@
+use serde_json;
+
 use syl_lib::{
     colors::{color, Color},
+    commands::{Add, Search, Tags},
     db::Database,
     util::singular_plural,
     web::{get_metadata, Metadata},
 };
 
 pub trait Interface {
-    fn add(&mut self, url: &String, tags: &Vec<String>);
-    fn find(&self, query: &Option<String>, tags: &Vec<String>, all_tags: bool);
-    fn tags(&self, sort_by_count: bool, reverse: bool);
+    fn add(&mut self, args: Add);
+    fn find(&self, args: Search);
+    fn tags(&self, args: Tags);
 }
 
 impl Interface for Database {
-    fn add(&mut self, url: &String, tags: &Vec<String>) {
+    fn add(&mut self, args: Add) {
         match self.add_bookmark(
-            url,
-            get_metadata(url).unwrap_or(Metadata {
+            &args.url,
+            get_metadata(&args.url).unwrap_or(Metadata {
                 title: None,
                 description: None,
             }),
-            tags,
+            &args.tags,
         ) {
             Ok(bookmark) => println!("{}", bookmark),
             Err(e) => eprintln!("Error adding bookmark to database: {:?}", e),
         }
     }
 
-    fn find(&self, query: &Option<String>, tags: &Vec<String>, all_tags: bool) {
-        match self.search_bookmarks(query, tags, all_tags) {
+    fn find(&self, args: Search) {
+        match self.search_bookmarks(&args.query, &args.tags, args.all_tags) {
             Ok(bookmarks) => {
                 println!(
                     "Found {} {}.",
@@ -45,8 +48,8 @@ impl Interface for Database {
         }
     }
 
-    fn tags(&self, sort_by_count: bool, reverse: bool) {
-        match self.get_tags(sort_by_count, reverse) {
+    fn tags(&self, args: Tags) {
+        match self.get_tags(args.sort_by_count, args.reverse) {
             Ok(tags) => {
                 println!(
                     "Found {} {}.",
@@ -67,5 +70,23 @@ impl Interface for Database {
             }
             Err(e) => eprintln!("Error finding tags: {:?}", e),
         }
+    }
+}
+
+pub struct Server {
+    pub url: String,
+}
+
+impl Interface for Server {
+    fn add(&mut self, args: Add) {
+        println!("{}", serde_json::to_string(&args).unwrap());
+    }
+
+    fn find(&self, args: Search) {
+        println!("{}", serde_json::to_string(&args).unwrap());
+    }
+
+    fn tags(&self, args: Tags) {
+        println!("{}", serde_json::to_string(&args).unwrap());
     }
 }
