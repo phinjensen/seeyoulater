@@ -1,6 +1,6 @@
 use clap::{Parser, Subcommand};
 
-use syl::commands::{add, find, tags};
+use syl::commands::Interface;
 use syl_lib::{config::Config, db::Database};
 
 #[derive(Parser)]
@@ -52,15 +52,15 @@ fn main() {
     let config = Config::new();
     let mut db = Database::open(&config.database()).unwrap();
     match &args.command {
-        Command::Add { url, tags } => add(&mut db, url, tags),
+        Command::Add { url, tags } => db.add(url, tags),
         Command::Search {
             query,
             tags,
             all_tags,
-        } => find(db, query, tags, *all_tags),
+        } => db.find(query, tags, *all_tags),
         Command::Tags {
             sort_by_count,
             reverse,
-        } => tags(db, *sort_by_count, *reverse),
+        } => db.tags(*sort_by_count, *reverse),
     };
 }
