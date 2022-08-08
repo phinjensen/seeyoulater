@@ -77,16 +77,44 @@ pub struct Server {
     pub url: String,
 }
 
+impl Server {
+    fn request(&self, verb: &str, path: &str, body: Option<&str>) {
+        let request = ureq::request(verb, &(self.url.to_string() + path));
+        let result;
+        if let Some(body) = body {
+            result = request.send_string(&body);
+        } else {
+            result = request.call();
+        }
+        match result {
+            Ok(result) => {
+                if let Ok(result) = result.into_string() {
+                    println!("{}", result);
+                }
+            }
+            Err(e) => eprintln!("Error sending bookmark add to server:\n{}", e),
+        }
+    }
+}
+
 impl Interface for Server {
     fn add(&mut self, args: Add) {
-        println!("{}", serde_json::to_string(&args).unwrap());
+        self.request("POST", "/add", Some(&serde_json::to_string(&args).unwrap()));
     }
 
     fn find(&self, args: Search) {
-        println!("{}", serde_json::to_string(&args).unwrap());
+        self.request(
+            "GET",
+            &("/search?".to_string() + &serde_qs::to_string(&args).unwrap()),
+            None,
+        );
     }
 
     fn tags(&self, args: Tags) {
-        println!("{}", serde_json::to_string(&args).unwrap());
+        self.request(
+            "GET",
+            &("/tags?".to_string() + &serde_qs::to_string(&args).unwrap()),
+            None,
+        );
     }
 }
