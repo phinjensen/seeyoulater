@@ -1,22 +1,28 @@
+use std::io::{self, Read, Write};
+
 use serde_json;
 
 use syl_lib::{
     colors::{color, Color},
-    commands::{Add, Search, Tags},
+    commands::{Add, Delete, Interface, Search, Tags},
     db::Database,
     util::singular_plural,
     web::{get_metadata, Metadata},
 };
 
-pub trait Interface {
-    fn add(&mut self, args: Add);
-    fn find(&self, args: Search);
-    fn tags(&self, args: Tags);
+pub struct DatabaseInterface {
+    db: Database,
 }
 
-impl Interface for Database {
+impl DatabaseInterface {
+    pub fn from(db: Database) -> Self {
+        Self { db }
+    }
+}
+
+impl Interface for DatabaseInterface {
     fn add(&mut self, args: Add) {
-        match self.add_bookmark(
+        match self.db.add_bookmark(
             &args.url,
             get_metadata(&args.url).unwrap_or(Metadata {
                 title: None,
@@ -30,7 +36,10 @@ impl Interface for Database {
     }
 
     fn find(&self, args: Search) {
-        match self.search_bookmarks(&args.query, &args.tags, args.all_tags) {
+        match self
+            .db
+            .search_bookmarks(&args.query, &args.tags, args.all_tags)
+        {
             Ok(bookmarks) => {
                 println!(
                     "Found {} {}.",
@@ -49,7 +58,7 @@ impl Interface for Database {
     }
 
     fn tags(&self, args: Tags) {
-        match self.get_tags(args.sort_by_count, args.reverse) {
+        match self.db.get_tags(args.sort_by_count, args.reverse) {
             Ok(tags) => {
                 println!(
                     "Found {} {}.",
@@ -71,17 +80,51 @@ impl Interface for Database {
             Err(e) => eprintln!("Error finding tags: {:?}", e),
         }
     }
+
+    fn delete(&self, args: Delete) {
+        match self
+            .db
+            .search_bookmarks(&args.query, &args.tags, args.all_tags)
+        {
+            Ok(bookmarks) => {
+                for (i, bookmark) in bookmarks.iter().enumerate() {
+                    if i > 0 {
+                        print!("\n");
+                    }
+                    println!("{bookmark}");
+                }
+                let mut confirm = String::from("");
+                while confirm != "y" && confirm != "n" {
+                    print!(
+                        "Are you sure you want to delete {} {} (y/n)? ",
+                        singular_plural("these", bookmarks.len() as isize),
+                        singular_plural("bookmarks", bookmarks.len() as isize)
+                    );
+                    io::stdout().flush().ok();
+                    let stdin = io::stdin();
+                    stdin.take(1).read_to_string(&mut confirm).ok();
+                    println!("{confirm}");
+                }
+            }
+            Err(e) => eprintln!("Error searching database: {:?}", e),
+        }
+    }
 }
 
-pub struct Server {
-    pub url: String,
+pub struct ServerInterface {
+    url: String,
 }
 
-impl Server {
+impl ServerInterface {
+    pub fn new(url: String) -> Self {
+        Self { url }
+    }
+
     fn request(&self, verb: &str, path: &str, body: Option<&str>) {
-        let request = ureq::request(verb, &(self.url.to_string() + path));
+        let mut request = ureq::request(verb, &(self.url.to_string() + path));
         let result;
         if let Some(body) = body {
+            request = request.set("Content-Type", "application/json");
             result = request.send_string(&body);
         } else {
             result = request.call();
@@ -97,7 +140,7 @@ impl Server {
     }
 }
 
-impl Interface for Server {
+impl Interface for ServerInterface {
     fn add(&mut self, args: Add) {
         self.request("POST", "/add", Some(&serde_json::to_string(&args).unwrap()));
     }
@@ -116,5 +159,9 @@ impl Interface for Server {
             &("/tags?".to_string() + &serde_qs::to_string(&args).unwrap()),
             None,
         );
+    }
+
+    fn delete(&self, args: Delete) {
+        panic!("incomplete");
     }
 }

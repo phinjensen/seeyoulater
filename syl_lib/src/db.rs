@@ -3,6 +3,7 @@ use std::fmt::{Display, Formatter};
 
 use itertools::Itertools;
 use rusqlite::{Connection, Error::QueryReturnedNoRows, Result, Row, ToSql, Transaction};
+use serde::Serialize;
 
 use crate::{
     colors::{color, Color},
@@ -10,7 +11,7 @@ use crate::{
     web::Metadata,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct Bookmark {
     id: i64,
     pub url: String,

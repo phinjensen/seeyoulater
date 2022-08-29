@@ -1,8 +1,9 @@
 use clap::{Parser, Subcommand};
 
-use syl::commands::{Interface, Server};
-use syl_lib::commands::{Add, Search, Tags};
-use syl_lib::{config::Config, db::Database};
+use syl::commands::{DatabaseInterface, ServerInterface};
+use syl_lib::commands::{Add, Delete, Interface, Search, Tags};
+use syl_lib::config::Config;
+use syl_lib::db::Database;
 
 #[derive(Parser)]
 #[clap(author, version, about)]
@@ -18,14 +19,15 @@ enum Command {
     #[clap(visible_alias = "a")]
     /// Add a bookmark
     Add(Add),
-    #[clap(visible_alias = "get")]
+    #[clap(visible_alias = "s")]
     /// Search bookmarks
     Search(Search),
+    #[clap(visible_alias = "t")]
+    /// View/edit tags
     Tags(Tags),
-    // TODO: Consider what (if any) the "default" command should be, e.g.:
-    //      syl -t blog https://phinjensen.com
-    // Should this add a bookmark with the tab "blog" or search for bookmarks
-    // at https://phinjensen.com with the tag "blog"?
+    #[clap(visible_alias = "d")]
+    /// Delete bookmark(s) using the same interface as search
+    Delete(Delete),
 }
 
 fn main() {
@@ -33,15 +35,16 @@ fn main() {
     let config = Config::new();
     let mut interface: Box<dyn Interface>;
     if let Some(server) = &args.server {
-        interface = Box::new(Server {
-            url: server.to_string(),
-        });
+        interface = Box::new(ServerInterface::new(server.to_string()));
     } else {
-        interface = Box::new(Database::open(&config.database()).unwrap());
+        interface = Box::new(DatabaseInterface::from(
+            Database::open(&config.database()).unwrap(),
+        ));
     }
     match args.command {
         Command::Add(args) => interface.add(args),
         Command::Search(args) => interface.find(args),
         Command::Tags(args) => interface.tags(args),
+        Command::Delete(args) => interface.delete(args),
     };
 }
