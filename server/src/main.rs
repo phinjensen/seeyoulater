@@ -5,7 +5,7 @@ use std::io;
 use std::sync::Mutex;
 use syl_lib::config::Config;
 use syl_lib::db::Database;
-use syl_server::routes::add;
+use syl_server::routes::{add, search, tags};
 
 const PORT: usize = 8080;
 
@@ -24,6 +24,12 @@ fn main() {
             router!(request,
                 (POST) (/add) => {
                     add(&mut db.lock().unwrap(), request)
+                },
+                (GET) (/search) => {
+                    search(&mut db.lock().unwrap(), request)
+                },
+                (GET) (/tags) => {
+                    tags(&mut db.lock().unwrap(), request)
                 },
                 _ => rouille::Response::empty_404()
             )

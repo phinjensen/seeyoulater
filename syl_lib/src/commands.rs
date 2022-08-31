@@ -18,6 +18,7 @@ pub struct Search {
     pub query: Option<String>,
     /// Limit search to tag(s); use this option multiple times to specify multiple tags
     #[clap(short, long = "tag", value_parser)]
+    #[serde(default)]
     pub tags: Vec<String>,
     /// Match only bookmarks that contain *all* tags provided with -t (default behavior matches *any* tag provided)
     #[clap(short, long, action)]
