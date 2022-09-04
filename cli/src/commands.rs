@@ -95,15 +95,29 @@ impl Interface for DatabaseInterface {
                 }
                 let mut confirm = String::from("");
                 while confirm != "y" && confirm != "n" {
+                    confirm = String::from("");
                     print!(
-                        "Are you sure you want to delete {} {} (y/n)? ",
+                        "Are you sure you want to delete {} {} (y/N)? ",
                         singular_plural("these", bookmarks.len() as isize),
                         singular_plural("bookmarks", bookmarks.len() as isize)
                     );
                     io::stdout().flush().ok();
                     let stdin = io::stdin();
                     stdin.take(1).read_to_string(&mut confirm).ok();
-                    println!("{confirm}");
+                    if confirm == "\n" {
+                        confirm = String::from("n")
+                    }
+                }
+                if confirm == "y" {
+                    match self
+                        .db
+                        .delete_bookmarks(bookmarks.iter().map(|b| b.id).collect())
+                    {
+                        Ok(count) => println!("Deleted {count} bookmarks"),
+                        Err(e) => eprintln!("Error deleting bookmarks: {:?}", e),
+                    }
+                } else {
+                    println!("No bookmarks deleted.");
                 }
             }
             Err(e) => eprintln!("Error searching database: {:?}", e),

@@ -2,7 +2,9 @@ use core::fmt;
 use std::fmt::{Display, Formatter};
 
 use itertools::Itertools;
-use rusqlite::{Connection, Error::QueryReturnedNoRows, Result, Row, ToSql, Transaction};
+use rusqlite::{
+    params_from_iter, Connection, Error::QueryReturnedNoRows, Result, Row, ToSql, Transaction,
+};
 use serde::Serialize;
 
 use crate::{
@@ -13,7 +15,7 @@ use crate::{
 
 #[derive(Debug, Serialize)]
 pub struct Bookmark {
-    id: i64,
+    pub id: i64,
     pub url: String,
     pub title: Option<String>,
     pub description: Option<String>,
@@ -106,29 +108,29 @@ impl Database {
         self.connection.execute_batch(
             format!(
                 "
-            BEGIN;
-            CREATE TABLE bookmark (
-                id              INTEGER PRIMARY KEY AUTOINCREMENT,
-                url             TEXT UNIQUE,
-                title           TEXT,
-                description     TEXT,
-                created_at      INTEGER
-            );
-            CREATE TABLE tag (
-                name            TEXT PRIMARY KEY
-            );
-            CREATE TABLE bookmark_tag (
-                bookmark_id     INTEGER REFERENCES bookmark (id),
-                tag_name        TEXT REFERENCES tag (name),
-                PRIMARY KEY (bookmark_id, tag_name)
-            );
-            CREATE TABLE syl_meta (
-                key             TEXT PRIMARY KEY,
-                value           TEXT
-            );
-            INSERT INTO syl_meta VALUES ('database_version', {});
-            COMMIT;
-            ",
+                BEGIN;
+                CREATE TABLE bookmark (
+                    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                    url             TEXT UNIQUE,
+                    title           TEXT,
+                    description     TEXT,
+                    created_at      INTEGER
+                );
+                CREATE TABLE tag (
+                    name            TEXT PRIMARY KEY
+                );
+                CREATE TABLE bookmark_tag (
+                    bookmark_id     INTEGER REFERENCES bookmark (id),
+                    tag_name        TEXT REFERENCES tag (name),
+                    PRIMARY KEY (bookmark_id, tag_name)
+                );
+                CREATE TABLE syl_meta (
+                    key             TEXT PRIMARY KEY,
+                    value           TEXT
+                );
+                INSERT INTO syl_meta VALUES ('database_version', {});
+                COMMIT;
+                ",
                 CURRENT_VERSION
             )
             .as_str(),
@@ -146,12 +148,12 @@ impl Database {
         let tx = self.connection.transaction()?;
         let bookmark = tx.query_row(
             "
-                SELECT id, url, title, description, group_concat(tag_name)
-                FROM bookmark
-                LEFT JOIN bookmark_tag ON bookmark_tag.bookmark_id = bookmark.id
-                WHERE url = ?
-                GROUP BY tag_name
-                ",
+            SELECT id, url, title, description, group_concat(tag_name)
+            FROM bookmark
+            LEFT JOIN bookmark_tag ON bookmark_tag.bookmark_id = bookmark.id
+            WHERE url = ?
+            GROUP BY tag_name
+            ",
             [&url],
             Bookmark::from_row,
         );
@@ -164,7 +166,7 @@ impl Database {
                 println!("Added bookmark:");
                 tx.execute(
                     "INSERT INTO bookmark (url, title, description, created_at)
-                VALUES (?, ?, ?, datetime('now'))",
+                    VALUES (?, ?, ?, datetime('now'))",
                     (&url, &metadata.title, &metadata.description),
                 )?;
                 let id = tx.last_insert_rowid();
@@ -212,14 +214,14 @@ impl Database {
                 select = select
                     + &format!(
                         " AND id IN (SELECT bookmark_id FROM bookmark_tag WHERE tag_name IN ({}) GROUP BY bookmark_id HAVING count(bookmark_id) = {})",
-                        &"?,".repeat(tags.len())[..tags.len() * 2 - 1],
+                        repeat_vars(tags.len()),
                         tags.len()
                     );
             } else {
                 select = select
                     + &format!(
                         " AND id IN (SELECT bookmark_id FROM bookmark_tag WHERE tag_name IN ({}))",
-                        &"?,".repeat(tags.len())[..tags.len() * 2 - 1]
+                        repeat_vars(tags.len()),
                     );
             }
             for tag in tags {
@@ -239,12 +241,12 @@ impl Database {
         let mut stmt = self.connection.prepare(
             format!(
                 "
-            SELECT name, count(bookmark_id) as count
-            FROM tag
-            JOIN bookmark_tag ON bookmark_tag.tag_name=name
-            GROUP BY name
-            ORDER BY {} {}
-            ",
+                SELECT name, count(bookmark_id) as count
+                FROM tag
+                JOIN bookmark_tag ON bookmark_tag.tag_name=name
+                GROUP BY name
+                ORDER BY {} {}
+                ",
                 if sort_by_count { "count" } else { "name" },
                 if reverse { "DESC" } else { "ASC" },
             )
@@ -259,6 +261,23 @@ impl Database {
         Ok(tags)
     }
 
+    pub fn delete_bookmarks(&self, ids: Vec<i64>) -> Result<usize> {
+        self.connection.execute(
+            &format!(
+                "DELETE FROM bookmark_tag WHERE bookmark_id IN ({})",
+                repeat_vars(ids.len())
+            ),
+            params_from_iter(&ids),
+        )?;
+        self.connection.execute(
+            &format!(
+                "DELETE FROM bookmark WHERE id IN ({})",
+                repeat_vars(ids.len())
+            ),
+            params_from_iter(&ids),
+        )
+    }
+
     fn migrate(&self, current_version: usize) -> Result<()> {
         if current_version < MIGRATIONS.len() {
             for i in current_version..MIGRATIONS.len() {
@@ -268,6 +287,13 @@ impl Database {
         }
         Ok(())
     }
+}
+
+// TODO: Consider moving away from static. Am I right in understanding that creating this as a
+// static-lifetime object will make it stay until the program exits? Would that increase the
+// overall memory of the server every time this function is called without cleaning it up?
+fn repeat_vars(times: usize) -> String {
+    "?,".repeat(times)[..times * 2 - 1].to_string()
 }
 
 fn add_tags(tx: &Transaction, id: i64, tags: &Vec<String>) -> Result<()> {
