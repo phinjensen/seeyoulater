@@ -28,6 +28,9 @@ fn main() {
                 (GET) (/search) => {
                     search(&mut db.lock().unwrap(), request)
                 },
+                (DELETE) (/search) => {
+                    rouille::Response::text("Deleting bookmarks on the server is not yet supported.").with_status_code(501)
+                },
                 (GET) (/tags) => {
                     tags(&mut db.lock().unwrap(), request)
                 },

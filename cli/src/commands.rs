@@ -149,7 +149,16 @@ impl ServerInterface {
                     println!("{}", result);
                 }
             }
-            Err(e) => eprintln!("Error sending bookmark add to server:\n{}", e),
+            Err(e) => eprintln!(
+                "Error sending deleting bookmarks on server:\n{}",
+                match e {
+                    ureq::Error::Status(code, response) => format!(
+                        "({code}) {}",
+                        response.into_string().unwrap_or("".to_string())
+                    ),
+                    _ => format!("{}", e),
+                }
+            ),
         }
     }
 }
@@ -176,6 +185,10 @@ impl Interface for ServerInterface {
     }
 
     fn delete(&self, args: Delete) {
-        panic!("incomplete");
+        self.request(
+            "DELETE",
+            &("/search?".to_string() + &serde_qs::to_string(&args).unwrap()),
+            None,
+        );
     }
 }

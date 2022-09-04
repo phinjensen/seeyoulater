@@ -1,7 +1,7 @@
 use rouille::input::json_input;
 use rouille::{try_or_400, Request, Response};
 use serde::Serialize;
-use syl_lib::commands::{Add, Search, Tags};
+use syl_lib::commands::{Add, Delete, Search, Tags};
 use syl_lib::db::Database;
 use syl_lib::web::{get_metadata, Metadata};
 
