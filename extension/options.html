@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>SeeYouLater! options</title>
+<style>
+body {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 16px 0;
+  font-family: sans-serif;
+}
+
+h1 {
+  font-size: 24px;
+  text-align: center;
+  padding: 32px 0;
+  margin: 0;
+}
+
+h2 {
+  font-size: 20px;
+}
+
+.section {
+  border: 1px solid black;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.section h2 {
+  padding: 0 8px;
+  margin-top: -32px;
+  margin-left: -8px;
+  background: white;
+  width: min-content;
+}
+</style>
+  </head>
+
+  <body>
+    <h1>SeeYouLater! options</h1>
+
+    <div id="sync-section" class="section">
+      <h2>Syncing</h2>
+
+      <label>Server URL: <input type="text" name="server_url"></label>
+    </div>
+
+    <button id="save">Save</button>
+
+    <script src="/options.js"></script>
+  </body>
+</html>

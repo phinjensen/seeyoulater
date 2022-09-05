@@ -15,5 +15,23 @@
     "scripts": ["seeyoulater.js"],
     "persistent": true
   },
-  "permissions": ["tabs"]
+  "permissions": ["tabs", "storage"],
+  "commands": {
+    "_execute_browser_action": {
+      "suggested_key": {
+        "default": "Ctrl+Alt+S"
+      }
+    }
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true,
+    "browser_style": true
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "{df05fcae-f1f0-41fe-837d-122b96fd0a8a}",
+      "strict_min_version": "42.0"
+    }
+  }
 }

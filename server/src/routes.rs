@@ -1,7 +1,7 @@
 use rouille::input::json_input;
 use rouille::{try_or_400, Request, Response};
 use serde::Serialize;
-use syl_lib::commands::{Add, Delete, Search, Tags};
+use syl_lib::commands::{Add, Search, Tags};
 use syl_lib::db::Database;
 use syl_lib::web::{get_metadata, Metadata};
 
@@ -12,14 +12,22 @@ struct Error {
 
 pub fn add(db: &mut Database, request: &Request) -> Response {
     let args: Add = try_or_400!(json_input(request));
-    match db.add_bookmark(
-        &args.url,
+    // TODO: Better handling of metadata. i.e. when both title and description are provided, don't
+    // do a fetch. When one is provided but not the other, use the explicit one and do a fetch for
+    // the other. When neither are provided, do a fetch. Also add an option that forces no fetch to
+    // happen.
+    let metadata = if let Some(title) = args.title {
+        Metadata {
+            title: Some(title),
+            description: None,
+        }
+    } else {
         get_metadata(&args.url).unwrap_or(Metadata {
             title: None,
             description: None,
-        }),
-        &args.tags,
-    ) {
+        })
+    };
+    match db.add_bookmark(&args.url, metadata, &args.tags) {
         Ok(bookmark) => Response::json(&bookmark),
         Err(e) => Response::json(&Error {
             message: format!("Error writing bookmark to database: {e}"),

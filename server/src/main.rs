@@ -21,21 +21,32 @@ fn main() {
 
     rouille::start_server(format!("localhost:{PORT}"), move |request| {
         rouille::log(&request, io::stdout(), || {
-            router!(request,
-                (POST) (/add) => {
-                    add(&mut db.lock().unwrap(), request)
-                },
-                (GET) (/search) => {
-                    search(&mut db.lock().unwrap(), request)
-                },
-                (DELETE) (/search) => {
-                    rouille::Response::text("Deleting bookmarks on the server is not yet supported.").with_status_code(501)
-                },
-                (GET) (/tags) => {
-                    tags(&mut db.lock().unwrap(), request)
-                },
-                _ => rouille::Response::empty_404()
-            )
+            if request.method() == "OPTIONS" {
+                rouille::Response::empty_204()
+                    .with_additional_header("Access-Control-Allow-Origin", "*")
+                    .with_additional_header(
+                        "Access-Control-Allow-Methods",
+                        "POST, GET, DELETE, OPTIONS",
+                    )
+                    .with_additional_header("Access-Control-Allow-Headers", "content-type")
+                    .with_additional_header("Access-Control-Max-Age", "86400")
+            } else {
+                router!(request,
+                    (POST) (/add) => {
+                        add(&mut db.lock().unwrap(), request)
+                    },
+                    (GET) (/search) => {
+                        search(&mut db.lock().unwrap(), request)
+                    },
+                    (DELETE) (/search) => {
+                        rouille::Response::text("Deleting bookmarks on the server is not yet supported.").with_status_code(501)
+                    },
+                    (GET) (/tags) => {
+                        tags(&mut db.lock().unwrap(), request)
+                    },
+                    _ => rouille::Response::empty_404()
+                ).with_additional_header("Access-Control-Allow-Origin", "*")
+            }
         })
     });
 }

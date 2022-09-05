@@ -22,14 +22,18 @@ impl DatabaseInterface {
 
 impl Interface for DatabaseInterface {
     fn add(&mut self, args: Add) {
-        match self.db.add_bookmark(
-            &args.url,
+        let metadata = if let Some(title) = args.title {
+            Metadata {
+                title: Some(title),
+                description: None,
+            }
+        } else {
             get_metadata(&args.url).unwrap_or(Metadata {
                 title: None,
                 description: None,
-            }),
-            &args.tags,
-        ) {
+            })
+        };
+        match self.db.add_bookmark(&args.url, metadata, &args.tags) {
             Ok(bookmark) => println!("{}", bookmark),
             Err(e) => eprintln!("Error adding bookmark to database: {:?}", e),
         }

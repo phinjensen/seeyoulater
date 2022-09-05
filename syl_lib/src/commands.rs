@@ -8,7 +8,11 @@ pub struct Add {
     pub url: String,
     /// Tag(s) to add to this bookmark; use this option multiple times to add multiple tags
     #[clap(short, long, value_parser)]
+    #[serde(default)]
     pub tags: Vec<String>,
+    /// Title for this bookmark; automatically fetched if not set
+    #[clap(short = 'T', long, value_parser)]
+    pub title: Option<String>,
 }
 
 #[derive(Args, Serialize, Deserialize)]
