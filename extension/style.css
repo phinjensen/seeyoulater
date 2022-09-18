@@ -1,0 +1,101 @@
+@import url("fonts/inter.css");
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Inter;
+  font-weight: 400;
+}
+
+body#options {
+  max-width: 800px;
+  margin: 16px auto;
+  font-size: 11pt;
+}
+
+body#popup {
+  width: 400px;
+  margin: 16px;
+  font-size: 9pt;
+}
+
+h1 {
+  font-size: 1.8em;
+  text-align: center;
+  padding: 32px 0;
+  margin: 0;
+}
+
+h3 {
+  font-size: 1.3em;
+}
+
+#options .section {
+  border: 1px solid black;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+#options .section h2 {
+  padding: 0 8px;
+  margin-top: -32px;
+  margin-left: -8px;
+  background: white;
+  width: min-content;
+}
+
+#popup .section {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 -4px;
+}
+
+#popup .section > * {
+  padding: 0 4px;
+}
+
+.row {
+  flex: 1 0 100%;
+}
+
+.row label {
+  display: block;
+  width: 100%;
+  margin-bottom: 2px;
+}
+
+.row input,
+.row textarea {
+  display: block;
+  width: 100%;
+}
+
+.row.right {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.hidden {
+  display: none;
+}
+
+a.expand {
+  font-size: 10px;
+  width: 100%;
+}
+
+a.expand:hover {
+  border-radius: 4px;
+  background-color: #c1d8ec;
+}
+
+textarea,
+input {
+  font-family: Inter;
+  font-size: 11pt;
+}

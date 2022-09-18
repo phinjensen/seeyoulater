@@ -9,13 +9,14 @@
   },
   "browser_action": {
     "default_icon": "icons/seeyoulater-32.png",
-    "default_title": "SeeYouLater"
+    "default_title": "SeeYouLater",
+    "default_popup": "popup.html"
   },
   "background": {
     "scripts": ["seeyoulater.js"],
     "persistent": true
   },
-  "permissions": ["tabs", "storage"],
+  "permissions": ["tabs", "storage", "activeTab"],
   "commands": {
     "_execute_browser_action": {
       "suggested_key": {
@@ -25,8 +26,7 @@
   },
   "options_ui": {
     "page": "options.html",
-    "open_in_tab": true,
-    "browser_style": true
+    "open_in_tab": true
   },
   "browser_specific_settings": {
     "gecko": {

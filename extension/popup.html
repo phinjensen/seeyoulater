@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link href="/style.css" rel="stylesheet">
+    <meta charset="utf-8">
+  </head>
+
+  <body id="popup">
+    <h3>Add bookmark</h3>
+    <form>
+      <div class="section">
+        <div class="row">
+          <label for="title">Title:</label>
+          <input type="text" name="title">
+        </div>
+        <a class="expand" data-open="description-section">Edit URL ⮟</a>
+        <div class="row hidden" id="description-section">
+          <label for="url">URL:</label>
+          <input type="text" name="url">
+        </div>
+        <div class="row">
+          <label for="description">Description:</label>
+          <textarea name="description" rows="5"></textarea>
+        </div>
+        <div class="row">
+          <label for="tags">Tags:</label>
+          <input type="text" name="tags">
+        </div>
+        <div class="row right">
+          <button id="cancel">Cancel</button>
+          <button type="submit" id="save">Save</button>
+        </div>
+      </div>
+    </form>
+
+    <script src="/popup.js"></script>
+  </body>
+</html>

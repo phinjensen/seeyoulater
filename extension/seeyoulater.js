@@ -1,6 +1,7 @@
-browser.browserAction.onClicked.addListener(function ({ title, url }) {
-  browser.storage.sync.get("server_url").then(({ server_url }) => {
-    fetch(server_url + "/add", {
+browser.runtime.onMessage.addListener(
+  async ({ addBookmark: { title, description, url, tags } }) => {
+    let { server_url } = await browser.storage.sync.get("server_url");
+    let response = await fetch(server_url + "/add", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -8,9 +9,10 @@ browser.browserAction.onClicked.addListener(function ({ title, url }) {
       body: JSON.stringify({
         title,
         url,
+        description,
+        tags,
       }),
-    })
-      .then((response) => response.json())
-      .then((body) => console.log(body));
-  });
-});
+    });
+    let body = await response.json();
+  }
+);
