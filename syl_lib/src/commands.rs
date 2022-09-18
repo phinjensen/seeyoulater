@@ -1,5 +1,9 @@
+use std::{io, result, usize};
+
 use clap::Args;
 use serde::{Deserialize, Serialize};
+
+use crate::db::Bookmark;
 
 #[derive(Args, Serialize, Deserialize)]
 pub struct Add {
@@ -54,9 +58,19 @@ pub struct Delete {
     pub force: bool,
 }
 
+#[derive(Debug)]
+pub enum Error {
+    RusqliteError(rusqlite::Error),
+    UreqError(ureq::Error),
+    SerdeError,
+    IOError(io::Error),
+}
+
+pub type Result<T, E = Error> = result::Result<T, E>;
+
 pub trait Interface {
-    fn add(&mut self, args: Add);
-    fn find(&self, args: Search);
-    fn tags(&self, args: Tags);
-    fn delete(&self, args: Delete);
+    fn add(&mut self, args: Add) -> Result<Bookmark>;
+    fn find(&self, args: Search) -> Result<Vec<Bookmark>>;
+    fn tags(&self, args: Tags) -> Result<Vec<(String, usize)>>;
+    fn delete(&self, args: Delete) -> Result<usize>;
 }

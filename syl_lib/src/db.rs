@@ -2,10 +2,8 @@ use core::fmt;
 use std::fmt::{Display, Formatter};
 
 use itertools::Itertools;
-use rusqlite::{
-    params_from_iter, Connection, Error::QueryReturnedNoRows, Result, Row, ToSql, Transaction,
-};
-use serde::Serialize;
+use rusqlite::{params_from_iter, Connection, Result, Row, ToSql, Transaction};
+use serde::{Deserialize, Serialize};
 
 use crate::{
     colors::{color, Color},
@@ -13,7 +11,9 @@ use crate::{
     web::Metadata,
 };
 
-#[derive(Debug, Serialize)]
+pub use rusqlite::Error;
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Bookmark {
     pub id: i64,
     pub url: String,
@@ -162,7 +162,7 @@ impl Database {
                 println!("A bookmark for that URL already exists:");
                 Ok(bookmark)
             }
-            Err(QueryReturnedNoRows) => {
+            Err(Error::QueryReturnedNoRows) => {
                 println!("Added bookmark:");
                 tx.execute(
                     "INSERT INTO bookmark (url, title, description, created_at)

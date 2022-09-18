@@ -3,12 +3,40 @@ use std::io::{self, Read, Write};
 use serde_json;
 
 use syl_lib::{
-    colors::{color, Color},
-    commands::{Add, Delete, Interface, Search, Tags},
-    db::Database,
+    commands::{Add, Delete, Error as CommandError, Interface, Result, Search, Tags},
+    db::{Bookmark, Database, Error as DatabaseError},
     util::singular_plural,
     web::{get_metadata, Metadata},
 };
+
+fn wrap_db_err(err: DatabaseError) -> CommandError {
+    syl_lib::commands::Error::RusqliteError(err)
+}
+
+fn confirm_delete(bookmarks: &Vec<Bookmark>) -> bool {
+    for (i, bookmark) in bookmarks.iter().enumerate() {
+        if i > 0 {
+            print!("\n");
+        }
+        println!("{bookmark}");
+    }
+    let mut confirm = String::from("");
+    while confirm != "y" && confirm != "n" {
+        confirm = String::from("");
+        print!(
+            "Are you sure you want to delete {} {} (y/N)? ",
+            singular_plural("these", bookmarks.len() as isize),
+            singular_plural("bookmarks", bookmarks.len() as isize)
+        );
+        io::stdout().flush().ok();
+        let stdin = io::stdin();
+        stdin.take(1).read_to_string(&mut confirm).ok();
+        if confirm == "\n" {
+            confirm = String::from("n")
+        }
+    }
+    confirm == "y"
+}
 
 pub struct DatabaseInterface {
     db: Database,
@@ -21,7 +49,7 @@ impl DatabaseInterface {
 }
 
 impl Interface for DatabaseInterface {
-    fn add(&mut self, args: Add) {
+    fn add(&mut self, args: Add) -> Result<Bookmark> {
         let metadata = if let Some(title) = args.title {
             Metadata {
                 title: Some(title),
@@ -33,98 +61,37 @@ impl Interface for DatabaseInterface {
                 description: None,
             })
         };
-        match self.db.add_bookmark(&args.url, metadata, &args.tags) {
-            Ok(bookmark) => println!("{}", bookmark),
-            Err(e) => eprintln!("Error adding bookmark to database: {:?}", e),
-        }
+        self.db
+            .add_bookmark(&args.url, metadata, &args.tags)
+            .map_err(wrap_db_err)
     }
 
-    fn find(&self, args: Search) {
-        match self
-            .db
+    fn find(&self, args: Search) -> Result<Vec<Bookmark>> {
+        self.db
             .search_bookmarks(&args.query, &args.tags, args.all_tags)
-        {
-            Ok(bookmarks) => {
-                println!(
-                    "Found {} {}.",
-                    bookmarks.len(),
-                    singular_plural("bookmarks", bookmarks.len() as isize)
-                );
-                for (i, bookmark) in bookmarks.iter().enumerate() {
-                    if i > 0 {
-                        print!("\n");
-                    }
-                    println!("{bookmark}");
-                }
-            }
-            Err(e) => eprintln!("Error searching database: {:?}", e),
-        }
+            .map_err(wrap_db_err)
     }
 
-    fn tags(&self, args: Tags) {
-        match self.db.get_tags(args.sort_by_count, args.reverse) {
-            Ok(tags) => {
-                println!(
-                    "Found {} {}.",
-                    tags.len(),
-                    singular_plural("tags", tags.len() as isize)
-                );
-                if tags.len() > 0 {
-                    let longest = tags.iter().map(|t| t.0.len()).max().unwrap();
-                    for (tag, count) in tags {
-                        println!(
-                            "{:longest$} ({} {})",
-                            color(&tag, Color::Yellow),
-                            count,
-                            singular_plural("bookmarks", count as isize)
-                        );
-                    }
-                }
-            }
-            Err(e) => eprintln!("Error finding tags: {:?}", e),
-        }
+    fn tags(&self, args: Tags) -> Result<Vec<(String, usize)>> {
+        self.db
+            .get_tags(args.sort_by_count, args.reverse)
+            .map_err(wrap_db_err)
     }
 
-    fn delete(&self, args: Delete) {
-        match self
+    fn delete(&self, args: Delete) -> Result<usize> {
+        let search = self
             .db
-            .search_bookmarks(&args.query, &args.tags, args.all_tags)
-        {
-            Ok(bookmarks) => {
-                for (i, bookmark) in bookmarks.iter().enumerate() {
-                    if i > 0 {
-                        print!("\n");
-                    }
-                    println!("{bookmark}");
-                }
-                let mut confirm = String::from("");
-                while confirm != "y" && confirm != "n" {
-                    confirm = String::from("");
-                    print!(
-                        "Are you sure you want to delete {} {} (y/N)? ",
-                        singular_plural("these", bookmarks.len() as isize),
-                        singular_plural("bookmarks", bookmarks.len() as isize)
-                    );
-                    io::stdout().flush().ok();
-                    let stdin = io::stdin();
-                    stdin.take(1).read_to_string(&mut confirm).ok();
-                    if confirm == "\n" {
-                        confirm = String::from("n")
-                    }
-                }
-                if confirm == "y" {
-                    match self
-                        .db
-                        .delete_bookmarks(bookmarks.iter().map(|b| b.id).collect())
-                    {
-                        Ok(count) => println!("Deleted {count} bookmarks"),
-                        Err(e) => eprintln!("Error deleting bookmarks: {:?}", e),
-                    }
-                } else {
-                    println!("No bookmarks deleted.");
-                }
+            .search_bookmarks(&args.query, &args.tags, args.all_tags);
+        if let Ok(bookmarks) = search {
+            if confirm_delete(&bookmarks) {
+                self.db
+                    .delete_bookmarks(bookmarks.iter().map(|b| b.id).collect())
+                    .map_err(wrap_db_err)
+            } else {
+                Ok(0)
             }
-            Err(e) => eprintln!("Error searching database: {:?}", e),
+        } else {
+            search.map(|_| 0).map_err(wrap_db_err)
         }
     }
 }
@@ -138,7 +105,7 @@ impl ServerInterface {
         Self { url }
     }
 
-    fn request(&self, verb: &str, path: &str, body: Option<&str>) {
+    fn request(&self, verb: &str, path: &str, body: Option<&str>) -> Result<String> {
         let mut request = ureq::request(verb, &(self.url.to_string() + path));
         let result;
         if let Some(body) = body {
@@ -147,52 +114,47 @@ impl ServerInterface {
         } else {
             result = request.call();
         }
-        match result {
-            Ok(result) => {
-                if let Ok(result) = result.into_string() {
-                    println!("{}", result);
-                }
-            }
-            Err(e) => eprintln!(
-                "Error sending deleting bookmarks on server:\n{}",
-                match e {
-                    ureq::Error::Status(code, response) => format!(
-                        "({code}) {}",
-                        response.into_string().unwrap_or("".to_string())
-                    ),
-                    _ => format!("{}", e),
-                }
-            ),
-        }
+
+        let result = result.map_err(CommandError::UreqError)?;
+
+        result.into_string().map_err(CommandError::IOError)
     }
 }
 
 impl Interface for ServerInterface {
-    fn add(&mut self, args: Add) {
-        self.request("POST", "/add", Some(&serde_json::to_string(&args).unwrap()));
+    fn add(&mut self, args: Add) -> Result<Bookmark> {
+        serde_json::from_str(&self.request(
+            "POST",
+            "/add",
+            Some(&serde_json::to_string(&args).unwrap()),
+        )?)
+        .map_err(|_| CommandError::SerdeError)
     }
 
-    fn find(&self, args: Search) {
-        self.request(
+    fn find(&self, args: Search) -> Result<Vec<Bookmark>> {
+        serde_json::from_str(&self.request(
             "GET",
             &("/search?".to_string() + &serde_qs::to_string(&args).unwrap()),
             None,
-        );
+        )?)
+        .map_err(|_| CommandError::SerdeError)
     }
 
-    fn tags(&self, args: Tags) {
-        self.request(
+    fn tags(&self, args: Tags) -> Result<Vec<(String, usize)>> {
+        serde_json::from_str(&self.request(
             "GET",
             &("/tags?".to_string() + &serde_qs::to_string(&args).unwrap()),
             None,
-        );
+        )?)
+        .map_err(|_| CommandError::SerdeError)
     }
 
-    fn delete(&self, args: Delete) {
-        self.request(
-            "DELETE",
-            &("/search?".to_string() + &serde_qs::to_string(&args).unwrap()),
-            None,
-        );
+    fn delete(&self, _args: Delete) -> Result<usize> {
+        panic!("incomplete!");
+        //self.request(
+        //    "DELETE",
+        //    &("/search?".to_string() + &serde_qs::to_string(&args).unwrap()),
+        //    None,
+        //);
     }
 }
