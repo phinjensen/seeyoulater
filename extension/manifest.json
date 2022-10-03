@@ -16,7 +16,7 @@
     "scripts": ["seeyoulater.js"],
     "persistent": true
   },
-  "permissions": ["tabs", "storage", "activeTab"],
+  "permissions": ["tabs", "storage", "activeTab", "notifications"],
   "commands": {
     "_execute_browser_action": {
       "suggested_key": {
