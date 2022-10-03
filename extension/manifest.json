@@ -4,11 +4,11 @@
   "version": "0.1",
   "description": "Saves pages to a SeeYouLater bookmarking instance",
   "icons": {
-    "48": "icons/seeyoulater-48.png",
-    "96": "icons/seeyoulater-96.png"
+    "48": "icons/icon.svg",
+    "96": "icons/icon.svg"
   },
   "browser_action": {
-    "default_icon": "icons/seeyoulater-32.png",
+    "default_icon": "icons/icon.svg",
     "default_title": "SeeYouLater",
     "default_popup": "popup.html"
   },
