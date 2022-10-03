@@ -7,6 +7,7 @@ impl Config {
         Config {}
     }
 
+    //TODO: This fails unless the directory is already created. Fix that
     pub fn database(&self) -> String {
         if let Some(dirs) = ProjectDirs::from("com", "phinjensen", "seeyoulater") {
             dirs.data_dir()

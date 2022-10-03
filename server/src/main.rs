@@ -13,7 +13,8 @@ fn main() {
     // This example demonstrates how to handle HTML forms.
 
     // Note that like all examples we only listen on `localhost`, so you can't access this server
-    // from another machine than your own.
+    // from another machine than your own. TODO: Update this to listen on 0.0.0.0 so it is
+    // public-facing
     println!("Now listening on localhost:{PORT}");
 
     let config = Config::new();
