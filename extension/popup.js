@@ -75,8 +75,8 @@ document.addEventListener("DOMContentLoaded", async (event) => {
   window.addEventListener("unload", onUnload);
 
   document.addEventListener("keydown", (event) => {
-    event.preventDefault();
-    if (event.target.type !== "textarea") {
+    if (event.key === "Enter" && event.target.type !== "textarea") {
+      event.preventDefault();
       form.requestSubmit();
     }
   });
