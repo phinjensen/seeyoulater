@@ -17,7 +17,7 @@ fn main() {
     // public-facing
     println!("Now listening on localhost:{PORT}");
 
-    let config = Config::new();
+    let config = Config::open(None);
     let db = Mutex::new(Database::open(&config.database()).unwrap());
 
     rouille::start_server(format!("localhost:{PORT}"), move |request| {

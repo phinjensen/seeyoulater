@@ -34,10 +34,13 @@ enum Command {
 
 fn main() {
     let args = Args::parse();
-    let config = Config::new();
+    let config = Config::open(None);
+    println!("{:?}", config);
     let mut interface: Box<dyn Interface>;
     if let Some(server) = &args.server {
         interface = Box::new(ServerInterface::new(server.to_string()));
+    } else if let Some(server) = &config.server {
+        interface = Box::new(ServerInterface::new(server.url.to_string()));
     } else {
         interface = Box::new(DatabaseInterface::from(
             Database::open(&config.database()).unwrap(),
