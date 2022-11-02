@@ -47,6 +47,10 @@ h3 {
   width: min-content;
 }
 
+#options .section div {
+  padding-bottom: 8px;
+}
+
 #popup .section {
   display: flex;
   flex-wrap: wrap;
