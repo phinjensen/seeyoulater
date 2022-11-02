@@ -1,12 +1,14 @@
-use std::{
-    fs::{self, File},
-    io::Read,
-    path::PathBuf,
-};
+use std::{fs, path::PathBuf};
 
 use directories::ProjectDirs;
 use serde::Deserialize;
 use toml;
+
+pub enum ConfigPath {
+    Custom(String),
+    ServerDefault,
+    ClientDefault,
+}
 
 // TODO: Make these fields private (and make the Config object create the interfaces, maybe?)
 #[derive(Deserialize, Debug)]
@@ -23,14 +25,18 @@ pub struct Server {
 }
 
 impl Config {
-    pub fn open(path: Option<String>) -> Self {
-        let path = if let Some(path_string) = path {
+    pub fn open(path: ConfigPath) -> Self {
+        let path = if let ConfigPath::Custom(path_string) = path {
             PathBuf::from(path_string)
         } else {
             if let Some(dirs) = ProjectDirs::from("com", "phinjensen", "seeyoulater") {
                 let dir = dirs.config_dir();
                 fs::create_dir_all(dir).unwrap();
-                dir.join("config.toml")
+                match path {
+                    ConfigPath::ServerDefault => dir.join("config-server.toml"),
+                    ConfigPath::ClientDefault => dir.join("config.toml"),
+                    _ => dir.to_path_buf(), // Shouldn't be possible
+                }
             } else {
                 panic!("Error finding config directory.");
             }
@@ -46,14 +52,18 @@ impl Config {
         }
     }
 
-    //TODO: This fails unless the directory is already created. Fix that
     pub fn database(&self) -> String {
-        if let Some(dirs) = ProjectDirs::from("com", "phinjensen", "seeyoulater") {
-            let dir = dirs.data_dir();
-            fs::create_dir_all(dir).unwrap();
-            dir.join("seeyoulater.db").to_str().unwrap().to_string()
-        } else {
-            panic!("Error opening data directory!");
+        match &self.db_file {
+            Some(path) => path.to_string(),
+            None => {
+                if let Some(dirs) = ProjectDirs::from("com", "phinjensen", "seeyoulater") {
+                    let dir = dirs.data_dir();
+                    fs::create_dir_all(dir).unwrap();
+                    dir.join("seeyoulater.db").to_str().unwrap().to_string()
+                } else {
+                    panic!("Error opening data directory!");
+                }
+            }
         }
     }
 }
