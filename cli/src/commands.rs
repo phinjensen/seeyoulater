@@ -4,6 +4,7 @@ use serde_json;
 
 use syl_lib::{
     commands::{Add, Delete, Error as CommandError, Interface, Result, Search, Tags},
+    config::Server,
     db::{Bookmark, Database, Error as DatabaseError},
     util::singular_plural,
     web::{get_metadata, Metadata},
@@ -98,15 +99,23 @@ impl Interface for DatabaseInterface {
 
 pub struct ServerInterface {
     url: String,
+    username: String,
+    password: String,
 }
 
 impl ServerInterface {
-    pub fn new(url: String) -> Self {
-        Self { url }
+    pub fn new(server: Server) -> Self {
+        Self {
+            url: server.url,
+            username: server.username,
+            password: server.password,
+        }
     }
 
     fn request(&self, verb: &str, path: &str, body: Option<&str>) -> Result<String> {
-        let mut request = ureq::request(verb, &(self.url.to_string() + path));
+        let mut request = ureq::request(verb, &(self.url.to_string() + path))
+            .set("X-Username", &self.username)
+            .set("X-Password", &self.password);
         let result;
         if let Some(body) = body {
             request = request.set("Content-Type", "application/json");

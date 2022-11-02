@@ -3,7 +3,7 @@ use clap::{Parser, Subcommand};
 use syl::commands::{DatabaseInterface, ServerInterface};
 use syl_lib::colors::{color, Color};
 use syl_lib::commands::{Add, Delete, Interface, Search, Tags};
-use syl_lib::config::Config;
+use syl_lib::config::{Config, ConfigPath};
 use syl_lib::db::Database;
 use syl_lib::util::singular_plural;
 
@@ -12,8 +12,6 @@ use syl_lib::util::singular_plural;
 struct Args {
     #[clap(subcommand)]
     command: Command,
-    #[clap(short, long, value_parser)]
-    server: Option<String>,
 }
 
 #[derive(Subcommand)]
@@ -34,13 +32,11 @@ enum Command {
 
 fn main() {
     let args = Args::parse();
-    let config = Config::open(None);
+    let config = Config::open(ConfigPath::ClientDefault);
     println!("{:?}", config);
     let mut interface: Box<dyn Interface>;
-    if let Some(server) = &args.server {
-        interface = Box::new(ServerInterface::new(server.to_string()));
-    } else if let Some(server) = &config.server {
-        interface = Box::new(ServerInterface::new(server.url.to_string()));
+    if let Some(server) = config.server {
+        interface = Box::new(ServerInterface::new(server));
     } else {
         interface = Box::new(DatabaseInterface::from(
             Database::open(&config.database()).unwrap(),
