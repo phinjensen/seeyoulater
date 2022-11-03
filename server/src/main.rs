@@ -7,8 +7,6 @@ use syl_lib::config::{Config, ConfigPath};
 use syl_lib::db::Database;
 use syl_server::routes::{add, search, tags};
 
-const PORT: usize = 8080;
-
 fn main() {
     let config = Config::open(ConfigPath::ServerDefault);
     let db = Mutex::new(Database::open(&config.database()).unwrap());
@@ -20,7 +18,7 @@ fn main() {
 
     let server = config.server.unwrap();
 
-    rouille::start_server(format!("localhost:{PORT}"), move |request| {
+    rouille::start_server(server.url, move |request| {
         rouille::log(&request, io::stdout(), || {
             if request.method() == "OPTIONS" {
                 rouille::Response::empty_204()
