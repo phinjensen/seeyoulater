@@ -1,34 +1,29 @@
-sync_options = ["server_url"];
-local_options = ["username", "password"];
+const OPTIONS = {
+  sync: ["server_url"],
+  local: ["username", "password"],
+};
 
 document.addEventListener("DOMContentLoaded", (event) => {
-  browser.storage.sync
-    .get(sync_options)
-    .then((result) =>
-      sync_options.forEach(
+  for (let [area, keys] of Object.entries(OPTIONS)) {
+    browser.storage[area].get(keys).then((result) => {
+      keys.forEach(
         (option) =>
           (document.querySelector(`input[name="${option}"`).value =
             result[option] || "")
-      )
-    );
-  browser.storage.local
-    .get(local_options)
-    .then((result) =>
-      local_options.forEach(
-        (option) =>
-          (document.querySelector(`input[name="${option}"`).value =
-            result[option] || "")
-      )
-    );
+      );
+    });
+  }
 
   document.querySelector("#save").addEventListener("click", (event) => {
-    browser.storage.sync.set(
-      Object.fromEntries(
-        simple_options.map((option) => [
-          option,
-          document.querySelector(`input[name="${option}"`).value,
-        ])
-      )
-    );
+    for (let [area, keys] of Object.entries(OPTIONS)) {
+      browser.storage[area].set(
+        Object.fromEntries(
+          keys.map((option) => [
+            option,
+            document.querySelector(`input[name="${option}"`).value,
+          ])
+        )
+      );
+    }
   });
 });
