@@ -6,7 +6,7 @@ browser.runtime.onMessage.addListener(
       message: `Sending bookmark to server...`,
     });
     let { server_url } = await browser.storage.sync.get("server_url");
-    let { username, password } = await browser.storage.sync.get([
+    let { username, password } = await browser.storage.local.get([
       "username",
       "password",
     ]);
