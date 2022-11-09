@@ -14,17 +14,17 @@ Some of the above statements are not true, and the project as a whole is in a ve
 | - With tags         | Yes!       |
 | Searching bookmarks | Yes!       |
 | Deleting bookmarks  | Yes!       |
-| Configuration       | No :(      |
+| Configuration       | Partial    |
 | Server              | Partial    |
 | - Add               | Yes!       |
 |   - With tags       | Yes!       |
 | - Search            | Yes!       |
-| - Delete            | No :(      |
+| - Delete            | Yes!       |
 | - Sharing           | No :(      |
 | - Authentication    | No :(      |
 | Extension           | Partial    |
 | - Add               | Yes!       |
-|   - With tags       | No :(      |
+|   - With tags       | Yes!       |
 | - Search\*          | No :(      |
 | - Delete\*          | No :(      |
 | - Configuration\*\* | Partial    |
