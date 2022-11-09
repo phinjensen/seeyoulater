@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "SeeYouLater",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Saves pages to a SeeYouLater bookmarking instance",
   "icons": {
     "48": "icons/icon.svg",
