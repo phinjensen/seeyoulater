@@ -33,7 +33,6 @@ enum Command {
 fn main() {
     let args = Args::parse();
     let config = Config::open(ConfigPath::ClientDefault);
-    println!("{:?}", config);
     let mut interface: Box<dyn Interface>;
     if let Some(server) = config.server {
         interface = Box::new(ServerInterface::new(server));

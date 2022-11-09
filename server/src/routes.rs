@@ -45,6 +45,21 @@ pub fn search(db: &mut Database, request: &Request) -> Response {
     }
 }
 
+pub fn delete(db: &mut Database, request: &Request) -> Response {
+    let args: Search = serde_qs::from_str(request.raw_query_string()).unwrap();
+    match db.search_bookmarks(&args.query, &args.tags, args.all_tags) {
+        Ok(bookmarks) => match db.delete_bookmarks(bookmarks.iter().map(|b| b.id).collect()) {
+            Ok(deleted) => Response::json(&deleted),
+            Err(e) => Response::json(&Error {
+                message: format!("Error deleting bookmarks: {e}"),
+            }),
+        },
+        Err(e) => Response::json(&Error {
+            message: format!("Error searching bookmarks: {e}"),
+        }),
+    }
+}
+
 pub fn tags(db: &mut Database, request: &Request) -> Response {
     let args: Tags = serde_qs::from_str(request.raw_query_string()).unwrap();
     match db.get_tags(args.sort_by_count, args.reverse) {

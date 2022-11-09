@@ -5,7 +5,7 @@ use std::io;
 use std::sync::Mutex;
 use syl_lib::config::{Config, ConfigPath};
 use syl_lib::db::Database;
-use syl_server::routes::{add, search, tags};
+use syl_server::routes::{add, delete, search, tags};
 
 fn main() {
     let config = Config::open(ConfigPath::ServerDefault);
@@ -51,13 +51,14 @@ fn main() {
                             search(&mut db.lock().unwrap(), request)
                         },
                         (DELETE) (/search) => {
-                            rouille::Response::text("Deleting bookmarks on the server is not yet supported.").with_status_code(501)
+                            delete(&mut db.lock().unwrap(), request)
                         },
                         (GET) (/tags) => {
                             tags(&mut db.lock().unwrap(), request)
                         },
                         _ => rouille::Response::empty_404()
-                    ).with_additional_header("Access-Control-Allow-Origin", "*")
+                    )
+                    .with_additional_header("Access-Control-Allow-Origin", "*")
                 }
             }
         })

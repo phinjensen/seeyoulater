@@ -158,12 +158,22 @@ impl Interface for ServerInterface {
         .map_err(|_| CommandError::SerdeError)
     }
 
-    fn delete(&self, _args: Delete) -> Result<usize> {
-        panic!("incomplete!");
-        //self.request(
-        //    "DELETE",
-        //    &("/search?".to_string() + &serde_qs::to_string(&args).unwrap()),
-        //    None,
-        //);
+    fn delete(&self, args: Delete) -> Result<usize> {
+        let bookmarks = serde_json::from_str(&self.request(
+            "GET",
+            &("/search?".to_string() + &serde_qs::to_string(&args).unwrap()),
+            None,
+        )?)
+        .map_err(|_| CommandError::SerdeError)?;
+        if confirm_delete(&bookmarks) {
+            serde_json::from_str(&self.request(
+                "DELETE",
+                &("/search?".to_string() + &serde_qs::to_string(&args).unwrap()),
+                None,
+            )?)
+            .map_err(|_| CommandError::SerdeError)
+        } else {
+            Ok(0)
+        }
     }
 }
