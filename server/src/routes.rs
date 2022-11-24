@@ -1,9 +1,10 @@
 use rouille::input::json_input;
 use rouille::{try_or_400, Request, Response};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use syl_lib::commands::{Add, Search, Tags};
 use syl_lib::db::Database;
 use syl_lib::web::{get_metadata, Metadata};
+use urlencoding::decode;
 
 #[derive(Serialize)]
 struct Error {
@@ -39,7 +40,8 @@ pub fn add(db: &mut Database, request: &Request) -> Response {
 }
 
 pub fn search(db: &mut Database, request: &Request) -> Response {
-    let args: Search = serde_qs::from_str(request.raw_query_string()).unwrap();
+    let args: Search =
+        serde_qs::from_str(&decode(request.raw_query_string()).expect("invalid UTF-8!")).unwrap();
     match db.search_bookmarks(&args.query, &args.tags, args.all_tags) {
         Ok(bookmarks) => Response::json(&bookmarks),
         Err(e) => Response::json(&Error {
@@ -49,7 +51,8 @@ pub fn search(db: &mut Database, request: &Request) -> Response {
 }
 
 pub fn delete(db: &mut Database, request: &Request) -> Response {
-    let args: Search = serde_qs::from_str(request.raw_query_string()).unwrap();
+    let args: Search =
+        serde_qs::from_str(&decode(request.raw_query_string()).expect("invalid UTF-8!")).unwrap();
     match db.search_bookmarks(&args.query, &args.tags, args.all_tags) {
         Ok(bookmarks) => match db.delete_bookmarks(bookmarks.iter().map(|b| b.id).collect()) {
             Ok(deleted) => Response::json(&deleted),
@@ -64,7 +67,9 @@ pub fn delete(db: &mut Database, request: &Request) -> Response {
 }
 
 pub fn tags(db: &mut Database, request: &Request) -> Response {
-    let args: Tags = serde_qs::from_str(request.raw_query_string()).unwrap();
+    let args: Tags =
+        serde_qs::from_str(&decode(request.raw_query_string()).expect("invalid UTF-8!"))
+            .expect("Invalid arguments");
     match db.get_tags(args.sort_by_count, args.reverse) {
         Ok(tags) => Response::json(&tags),
         Err(e) => Response::json(&Error {
