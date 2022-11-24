@@ -14,9 +14,12 @@ pub struct Add {
     #[clap(short, long, value_parser)]
     #[serde(default)]
     pub tags: Vec<String>,
-    /// Title for this bookmark; automatically fetched if not set
+    /// Title for this bookmark; automatically fetched if not provided
     #[clap(short = 'T', long, value_parser)]
     pub title: Option<String>,
+    /// Description for this bookmark; automatically fetched if not provided
+    #[clap(short = 'd', long, value_parser)]
+    pub description: Option<String>,
 }
 
 #[derive(Args, Serialize, Deserialize)]

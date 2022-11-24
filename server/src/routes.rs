@@ -16,17 +16,20 @@ pub fn add(db: &mut Database, request: &Request) -> Response {
     // do a fetch. When one is provided but not the other, use the explicit one and do a fetch for
     // the other. When neither are provided, do a fetch. Also add an option that forces no fetch to
     // happen.
-    let metadata = if let Some(title) = args.title {
-        Metadata {
-            title: Some(title),
-            description: None,
-        }
-    } else {
-        get_metadata(&args.url).unwrap_or(Metadata {
-            title: None,
-            description: None,
-        })
+    let mut metadata = Metadata {
+        title: args.title,
+        description: args.description,
     };
+    if metadata.title.is_none() || metadata.description.is_none() {
+        if let Ok(downloaded_metadata) = get_metadata(&args.url) {
+            if metadata.title.is_none() {
+                metadata.title = downloaded_metadata.title;
+            }
+            if metadata.description.is_none() {
+                metadata.description = downloaded_metadata.description;
+            }
+        }
+    }
     match db.add_bookmark(&args.url, metadata, &args.tags) {
         Ok(bookmark) => Response::json(&bookmark),
         Err(e) => Response::json(&Error {
