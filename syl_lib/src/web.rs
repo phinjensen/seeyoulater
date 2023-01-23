@@ -1,7 +1,8 @@
+use std::error::Error;
 use std::io::BufReader;
 use std::{collections::HashMap, str::from_utf8};
 
-use quick_xml::events::Event;
+use quick_xml::events::{BytesStart, Event};
 use quick_xml::Reader;
 
 pub struct Metadata {
@@ -10,7 +11,7 @@ pub struct Metadata {
 }
 
 // TODO: Handle HTML entities (I'm seeing &gt; and &lt; and such)
-pub fn get_metadata(url: &String) -> Result<Metadata, ureq::Error> {
+pub fn get_metadata(url: &String) -> Result<Metadata, Box<dyn Error>> {
     let mut result = Metadata {
         title: None,
         description: None,
@@ -22,29 +23,10 @@ pub fn get_metadata(url: &String) -> Result<Metadata, ureq::Error> {
     let mut buf = Vec::new();
     loop {
         match reader.read_event(&mut buf) {
-            Ok(Event::Start(ref e)) => {
-                current_tag = from_utf8(e.name()).unwrap().to_lowercase();
+            Ok(Event::Start(ref tag)) => {
+                current_tag = from_utf8(tag.name()).unwrap_or("error").to_lowercase();
                 if current_tag == "meta" {
-                    let attributes: HashMap<String, String> = e
-                        .html_attributes()
-                        .filter_map(|attr| attr.ok())
-                        .map(|attr| {
-                            (
-                                // No need to unescape the key of a meta tag, because we're only
-                                // interested in a specific set of possible keys
-                                from_utf8(attr.key).unwrap().to_lowercase(),
-                                String::from_utf8_lossy(
-                                    &attr.to_owned().unescaped_value().unwrap_or(attr.value),
-                                )
-                                .to_string(),
-                            )
-                        })
-                        .collect();
-                    if let Some(name) = attributes.get("name") {
-                        if name.as_str() == "description" || name.as_str() == "og:description" {
-                            result.description = attributes.get("content").cloned();
-                        }
-                    }
+                    result.description = parse_meta_description(tag);
                 }
             }
             Ok(Event::Text(e)) => {
@@ -64,4 +46,38 @@ pub fn get_metadata(url: &String) -> Result<Metadata, ureq::Error> {
         buf.clear();
     }
     Ok(result)
+}
+
+fn parse_meta_description(tag: &BytesStart) -> Option<String> {
+    // Convert attributes into hashmap, ignoring anything that has errors from the parser or in the
+    // utf8 of the key
+    let attributes: HashMap<String, String> = tag
+        .html_attributes()
+        .filter_map(|attr| attr.ok())
+        .filter_map(|attr| {
+            if let Ok(key) = from_utf8(attr.key) {
+                Some((
+                    // No need to unescape the key of a meta tag, because we're only
+                    // interested in a specific set of possible keys
+                    key.to_lowercase(),
+                    String::from_utf8_lossy(
+                        &attr.to_owned().unescaped_value().unwrap_or(attr.value),
+                    )
+                    .to_string(),
+                ))
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    // If it's a name=description tag, we can then get the description tag. This could probably be a
+    // lot more efficient (if we're only looking for the one content attribute in tag, we don't need
+    // to memory for every single attribute) but it works for now.
+    if let Some(name) = attributes.get("name") {
+        if name.as_str() == "description" || name.as_str() == "og:description" {
+            return attributes.get("content").cloned();
+        }
+    }
+    None
 }
