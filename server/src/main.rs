@@ -3,22 +3,25 @@ extern crate rouille;
 
 use std::io;
 use std::sync::Mutex;
+use syl_lib::commands::DatabaseInterface;
 use syl_lib::config::{Config, ConfigPath};
 use syl_lib::db::Database;
 use syl_server::routes::{add, delete, search, tags};
 
 fn main() {
     let config = Config::open(ConfigPath::ServerDefault);
-    let db = Mutex::new(Database::open(&config.database()).unwrap());
 
     match &config.server {
         Some(server) => println!("Now listening on {}", server.url),
         None => panic!("[server] section must be defined in config!"),
     };
 
+    let interface = Mutex::new(DatabaseInterface::from(
+        Database::open(&config.database()).unwrap(),
+    ));
     let server = config.server.unwrap();
 
-    rouille::start_server(server.url, move |request| {
+    rouille::start_server(&server.url, move |request| {
         rouille::log(&request, io::stdout(), || {
             if request.method() == "OPTIONS" {
                 rouille::Response::empty_204()
@@ -40,21 +43,21 @@ fn main() {
             } else {
                 let username = request.header("X-Username").unwrap();
                 let password = request.header("X-Password").unwrap();
-                if username != server.username || password != server.password {
+                if username != &server.username || password != &server.password {
                     rouille::Response::text("Username or password incorrect").with_status_code(401)
                 } else {
                     router!(request,
                         (POST) (/add) => {
-                            add(&mut db.lock().unwrap(), request)
+                            add(&mut interface.lock().unwrap(), request)
                         },
                         (GET) (/search) => {
-                            search(&mut db.lock().unwrap(), request)
+                            search(&mut interface.lock().unwrap(), request)
                         },
                         (DELETE) (/search) => {
-                            delete(&mut db.lock().unwrap(), request)
+                            delete(&mut interface.lock().unwrap(), request)
                         },
                         (GET) (/tags) => {
-                            tags(&mut db.lock().unwrap(), request)
+                            tags(&mut interface.lock().unwrap(), request)
                         },
                         _ => rouille::Response::empty_404()
                     )

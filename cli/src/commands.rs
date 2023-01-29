@@ -5,16 +5,11 @@ use serde_json;
 use syl_lib::{
     commands::{Add, Delete, Error as CommandError, Interface, Result, Search, Tags},
     config::Server,
-    db::{Bookmark, Database, Error as DatabaseError},
+    db::Bookmark,
     util::singular_plural,
-    web::{get_metadata, Metadata},
 };
 
-fn wrap_db_err(err: DatabaseError) -> CommandError {
-    syl_lib::commands::Error::RusqliteError(err)
-}
-
-fn confirm_delete(bookmarks: &Vec<Bookmark>) -> bool {
+pub fn confirm_delete(bookmarks: &Vec<Bookmark>) -> bool {
     for (i, bookmark) in bookmarks.iter().enumerate() {
         if i > 0 {
             print!("\n");
@@ -37,64 +32,6 @@ fn confirm_delete(bookmarks: &Vec<Bookmark>) -> bool {
         }
     }
     confirm == "y"
-}
-
-pub struct DatabaseInterface {
-    db: Database,
-}
-
-impl DatabaseInterface {
-    pub fn from(db: Database) -> Self {
-        Self { db }
-    }
-}
-
-impl Interface for DatabaseInterface {
-    fn add(&mut self, args: Add) -> Result<Bookmark> {
-        let metadata = if let Some(title) = args.title {
-            Metadata {
-                title: Some(title),
-                description: None,
-            }
-        } else {
-            get_metadata(&args.url).unwrap_or(Metadata {
-                title: None,
-                description: None,
-            })
-        };
-        self.db
-            .add_bookmark(&args.url, metadata, &args.tags)
-            .map_err(wrap_db_err)
-    }
-
-    fn find(&self, args: Search) -> Result<Vec<Bookmark>> {
-        self.db
-            .search_bookmarks(&args.query, &args.tags, args.all_tags)
-            .map_err(wrap_db_err)
-    }
-
-    fn tags(&self, args: Tags) -> Result<Vec<(String, usize)>> {
-        self.db
-            .get_tags(args.sort_by_count, args.reverse)
-            .map_err(wrap_db_err)
-    }
-
-    fn delete(&self, args: Delete) -> Result<usize> {
-        let search = self
-            .db
-            .search_bookmarks(&args.query, &args.tags, args.all_tags);
-        if let Ok(bookmarks) = search {
-            if confirm_delete(&bookmarks) {
-                self.db
-                    .delete_bookmarks(bookmarks.iter().map(|b| b.id).collect())
-                    .map_err(wrap_db_err)
-            } else {
-                Ok(0)
-            }
-        } else {
-            search.map(|_| 0).map_err(wrap_db_err)
-        }
-    }
 }
 
 pub struct ServerInterface {

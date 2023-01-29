@@ -1,8 +1,8 @@
 use clap::{Parser, Subcommand};
 
-use syl::commands::{DatabaseInterface, ServerInterface};
+use syl::commands::{confirm_delete, ServerInterface};
 use syl_lib::colors::{color, Color};
-use syl_lib::commands::{Add, Delete, Interface, Search, Tags};
+use syl_lib::commands::{Add, DatabaseInterface, Delete, Interface, Search, Tags};
 use syl_lib::config::{Config, ConfigPath};
 use syl_lib::db::Database;
 use syl_lib::util::singular_plural;
@@ -83,10 +83,24 @@ fn main() {
             }
             Err(e) => eprintln!("Error finding tags: {:?}", e),
         },
-        Command::Delete(args) => match interface.delete(args) {
-            Ok(0) => println!("No bookmarks deleted."),
-            Ok(count) => println!("Deleted {count} bookmarks"),
-            Err(e) => eprintln!("Error deleting bookmarks: {:?}", e),
-        },
+        Command::Delete(args) => {
+            let search_args = Search {
+                query: args.query.clone(),
+                tags: args.tags.clone(),
+                all_tags: args.all_tags,
+            };
+            match interface.find(search_args) {
+                Ok(bookmarks) => {
+                    if confirm_delete(&bookmarks) {
+                        match interface.delete(args) {
+                            Ok(0) => println!("No bookmarks deleted."),
+                            Ok(count) => println!("Deleted {count} bookmarks"),
+                            Err(e) => eprintln!("Error deleting bookmarks: {:?}", e),
+                        }
+                    }
+                }
+                Err(e) => println!("Error searching bookmarks: {e:?}"),
+            }
+        }
     };
 }

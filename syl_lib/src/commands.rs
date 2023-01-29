@@ -3,7 +3,10 @@ use std::{io, result, usize};
 use clap::Args;
 use serde::{Deserialize, Serialize};
 
-use crate::db::Bookmark;
+use crate::{
+    db::{Bookmark, Database, Error as DatabaseError},
+    web::{get_metadata, Metadata},
+};
 
 #[derive(Args, Serialize, Deserialize)]
 pub struct Add {
@@ -76,4 +79,58 @@ pub trait Interface {
     fn find(&self, args: Search) -> Result<Vec<Bookmark>>;
     fn tags(&self, args: Tags) -> Result<Vec<(String, usize)>>;
     fn delete(&self, args: Delete) -> Result<usize>;
+}
+
+fn wrap_db_err(err: DatabaseError) -> Error {
+    Error::RusqliteError(err)
+}
+
+pub struct DatabaseInterface {
+    db: Database,
+}
+
+impl DatabaseInterface {
+    pub fn from(db: Database) -> Self {
+        Self { db }
+    }
+}
+
+impl Interface for DatabaseInterface {
+    fn add(&mut self, args: Add) -> Result<Bookmark> {
+        let metadata = if let Some(title) = args.title {
+            Metadata {
+                title: Some(title),
+                description: None,
+            }
+        } else {
+            get_metadata(&args.url).unwrap_or(Metadata {
+                title: None,
+                description: None,
+            })
+        };
+        self.db
+            .add_bookmark(&args.url, metadata, &args.tags)
+            .map_err(wrap_db_err)
+    }
+
+    fn find(&self, args: Search) -> Result<Vec<Bookmark>> {
+        self.db
+            .search_bookmarks(&args.query, &args.tags, args.all_tags)
+            .map_err(wrap_db_err)
+    }
+
+    fn tags(&self, args: Tags) -> Result<Vec<(String, usize)>> {
+        self.db
+            .get_tags(args.sort_by_count, args.reverse)
+            .map_err(wrap_db_err)
+    }
+
+    fn delete(&self, args: Delete) -> Result<usize> {
+        let search = self
+            .db
+            .search_bookmarks(&args.query, &args.tags, args.all_tags);
+        self.db
+            .delete_bookmarks(search.map_err(wrap_db_err)?.iter().map(|b| b.id).collect())
+            .map_err(wrap_db_err)
+    }
 }

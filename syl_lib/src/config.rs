@@ -1,4 +1,4 @@
-use std::{fs, path::PathBuf};
+use std::{fs, path::PathBuf, time::Duration};
 
 use directories::ProjectDirs;
 use serde::Deserialize;
@@ -15,6 +15,8 @@ pub enum ConfigPath {
 pub struct Config {
     pub db_file: Option<String>,
     pub server: Option<Server>,
+    #[serde(default = "default_timeout")]
+    pub timeout: Duration,
 }
 
 #[derive(Deserialize, Debug)]
@@ -22,6 +24,10 @@ pub struct Server {
     pub url: String,
     pub username: String,
     pub password: String,
+}
+
+fn default_timeout() -> Duration {
+    Duration::from_secs(30)
 }
 
 impl Config {
@@ -48,6 +54,7 @@ impl Config {
             Config {
                 server: None,
                 db_file: None,
+                timeout: default_timeout(),
             }
         }
     }
