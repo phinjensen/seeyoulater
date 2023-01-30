@@ -6,6 +6,7 @@ use std::sync::Mutex;
 use syl_lib::commands::DatabaseInterface;
 use syl_lib::config::{Config, ConfigPath};
 use syl_lib::db::Database;
+use syl_lib::web::WebClient;
 use syl_server::routes::{add, delete, search, tags};
 
 fn main() {
@@ -18,6 +19,7 @@ fn main() {
 
     let interface = Mutex::new(DatabaseInterface::from(
         Database::open(&config.database()).unwrap(),
+        WebClient::new(config.timeout),
     ));
     let server = config.server.unwrap();
 

@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     db::{Bookmark, Database, Error as DatabaseError},
-    web::{get_metadata, Metadata},
+    web::{Metadata, WebClient},
 };
 
 #[derive(Args, Serialize, Deserialize)]
@@ -87,11 +87,12 @@ fn wrap_db_err(err: DatabaseError) -> Error {
 
 pub struct DatabaseInterface {
     db: Database,
+    web: WebClient,
 }
 
 impl DatabaseInterface {
-    pub fn from(db: Database) -> Self {
-        Self { db }
+    pub fn from(db: Database, web: WebClient) -> Self {
+        Self { db, web }
     }
 }
 
@@ -103,7 +104,7 @@ impl Interface for DatabaseInterface {
                 description: None,
             }
         } else {
-            get_metadata(&args.url).unwrap_or(Metadata {
+            self.web.get_metadata(&args.url).unwrap_or(Metadata {
                 title: None,
                 description: None,
             })
