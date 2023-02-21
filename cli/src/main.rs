@@ -6,6 +6,7 @@ use syl_lib::commands::{Add, DatabaseInterface, Delete, Interface, Search, Tags}
 use syl_lib::config::{Config, ConfigPath};
 use syl_lib::db::Database;
 use syl_lib::util::singular_plural;
+use syl_lib::web::WebClient;
 
 #[derive(Parser)]
 #[clap(author, version, about)]
@@ -39,6 +40,7 @@ fn main() {
     } else {
         interface = Box::new(DatabaseInterface::from(
             Database::open(&config.database()).unwrap(),
+            WebClient::new(config.timeout),
         ));
     }
     match args.command {
