@@ -15,3 +15,4 @@ ureq = "2.5.0"
 rusqlite = { version = "0.28.0", features = ["bundled"] }
 serde = { version = "1.0.142", features = ["derive"] }
 toml = "0.5.9"
+serde_with = "3.0.0"

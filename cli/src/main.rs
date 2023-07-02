@@ -85,24 +85,10 @@ fn main() {
             }
             Err(e) => eprintln!("Error finding tags: {:?}", e),
         },
-        Command::Delete(args) => {
-            let search_args = Search {
-                query: args.query.clone(),
-                tags: args.tags.clone(),
-                all_tags: args.all_tags,
-            };
-            match interface.find(search_args) {
-                Ok(bookmarks) => {
-                    if confirm_delete(&bookmarks) {
-                        match interface.delete(args) {
-                            Ok(0) => println!("No bookmarks deleted."),
-                            Ok(count) => println!("Deleted {count} bookmarks"),
-                            Err(e) => eprintln!("Error deleting bookmarks: {:?}", e),
-                        }
-                    }
-                }
-                Err(e) => println!("Error searching bookmarks: {e:?}"),
-            }
-        }
+        Command::Delete(args) => match interface.delete(args) {
+            Ok(0) => println!("No bookmarks deleted."),
+            Ok(count) => println!("Deleted {count} bookmarks"),
+            Err(e) => eprintln!("Error deleting bookmarks: {:?}", e),
+        },
     };
 }

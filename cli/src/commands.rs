@@ -29,6 +29,13 @@ pub fn confirm_delete(bookmarks: &Vec<Bookmark>) -> bool {
         stdin.take(1).read_to_string(&mut confirm).ok();
         if confirm == "\n" {
             confirm = String::from("n")
+        } else if confirm == "y" {
+            eprintln!(
+                "confirm is: {:?}, doesn't match? {}",
+                confirm,
+                confirm != "y"
+            );
+            break;
         }
     }
     confirm == "y"
@@ -102,6 +109,7 @@ impl Interface for ServerInterface {
             None,
         )?)
         .map_err(|_| CommandError::SerdeError)?;
+        eprintln!("in delete");
         if confirm_delete(&bookmarks) {
             serde_json::from_str(&self.request(
                 "DELETE",

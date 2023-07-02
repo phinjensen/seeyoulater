@@ -2,6 +2,7 @@ use std::{io, result, usize};
 
 use clap::Args;
 use serde::{Deserialize, Serialize};
+use serde_with::{serde_as, DisplayFromStr};
 
 use crate::{
     db::{Bookmark, Database, Error as DatabaseError},
@@ -25,6 +26,7 @@ pub struct Add {
     pub description: Option<String>,
 }
 
+#[serde_as]
 #[derive(Args, Serialize, Deserialize)]
 pub struct Search {
     /// A word or phrase to match in the URL, title, or description
@@ -36,6 +38,7 @@ pub struct Search {
     pub tags: Vec<String>,
     /// Match only bookmarks that contain *all* tags provided with -t (default behavior matches *any* tag provided)
     #[clap(short, long, action)]
+    #[serde_as(as = "DisplayFromStr")]
     pub all_tags: bool,
 }
 
@@ -50,15 +53,9 @@ pub struct Tags {
 // TODO: Figure out if there's a better way to keep this in sync with the Search API
 #[derive(Args, Serialize, Deserialize)]
 pub struct Delete {
-    /// A word or phrase to match in the URL, title, or description
-    #[clap(value_parser)]
-    pub query: Option<String>,
-    /// Limit search to tag(s); use this option multiple times to specify multiple tags
-    #[clap(short, long = "tag", value_parser)]
-    pub tags: Vec<String>,
-    /// Match only bookmarks that contain *all* tags provided with -t (default behavior matches *any* tag provided)
-    #[clap(short, long, action)]
-    pub all_tags: bool,
+    #[serde(flatten)]
+    #[clap(flatten)]
+    pub search: Search,
     /// Force deletion (i.e. don't show a confirmation prompt)
     #[clap(short, action)]
     pub force: bool,
@@ -127,9 +124,10 @@ impl Interface for DatabaseInterface {
     }
 
     fn delete(&self, args: Delete) -> Result<usize> {
-        let search = self
-            .db
-            .search_bookmarks(&args.query, &args.tags, args.all_tags);
+        let search =
+            self.db
+                .search_bookmarks(&args.search.query, &args.search.tags, args.search.all_tags);
+        eprintln!("Search result: {:?}", search);
         self.db
             .delete_bookmarks(search.map_err(wrap_db_err)?.iter().map(|b| b.id).collect())
             .map_err(wrap_db_err)
