@@ -210,31 +210,43 @@ impl Database {
             params.extend_from_slice(&[query, query, query]);
         }
         if tags.len() > 0 {
+            select += &format!(
+                " AND id IN (SELECT bookmark_id FROM bookmark_tag WHERE tag_name IN ({})",
+                repeat_vars(tags.len()),
+            );
             if all_tags {
-                select = select
-                    + &format!(
-                        " AND id IN (SELECT bookmark_id FROM bookmark_tag WHERE tag_name IN ({}) GROUP BY bookmark_id HAVING count(bookmark_id) = {})",
-                        repeat_vars(tags.len()),
-                        tags.len()
-                    );
-            } else {
-                select = select
-                    + &format!(
-                        " AND id IN (SELECT bookmark_id FROM bookmark_tag WHERE tag_name IN ({}))",
-                        repeat_vars(tags.len()),
-                    );
+                select += &format!(
+                    " GROUP BY bookmark_id HAVING count(bookmark_id) = {}",
+                    tags.len()
+                );
             }
+            select += ")";
             for tag in tags {
                 params.push(tag as &dyn ToSql);
             }
         }
-        select += &" GROUP BY id";
+        select += " GROUP BY id";
         let mut stmt = self.connection.prepare(&select)?;
         let bookmarks = stmt
             .query_map(&params[..], Bookmark::from_row)?
             .map(|b| b.unwrap())
             .collect();
         Ok(bookmarks)
+    }
+
+    pub fn rename_tag(&self, from: &str, to: &str) -> Result<usize> {
+        let mut stmt = self
+            .connection
+            .prepare("SELECT count(name) FROM tag WHERE name = ?")?;
+        let found: isize = stmt.query_row(&[to], |r| r.get(0))?;
+        if found == 0 {
+            self.connection
+                .execute("INSERT INTO tag VALUES (?)", &[to])?;
+        }
+        self.connection.execute(
+            "UPDATE bookmark_tag SET tag_name = ? WHERE tag_name = ?",
+            &[to, from],
+        )
     }
 
     pub fn get_tags(&self, sort_by_count: bool, reverse: bool) -> Result<Vec<(String, usize)>> {

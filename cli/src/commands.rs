@@ -102,6 +102,10 @@ impl Interface for ServerInterface {
         .map_err(|_| CommandError::SerdeError)
     }
 
+    fn rename_tag(&self, from: &str, to: &str) -> Result<usize> {
+        todo!()
+    }
+
     fn delete(&self, args: Delete) -> Result<usize> {
         let bookmarks = serde_json::from_str(&self.request(
             "GET",
