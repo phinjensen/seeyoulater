@@ -141,7 +141,7 @@ impl Database {
 
     pub fn add_bookmark(
         &mut self,
-        url: &String,
+        url: &str,
         metadata: Metadata,
         tags: &Vec<String>,
     ) -> Result<Bookmark> {
@@ -154,7 +154,7 @@ impl Database {
             WHERE url = ?
             GROUP BY tag_name
             ",
-            [&url],
+            [url],
             Bookmark::from_row,
         );
         match bookmark {
@@ -167,7 +167,7 @@ impl Database {
                 tx.execute(
                     "INSERT INTO bookmark (url, title, description, created_at)
                     VALUES (?, ?, ?, datetime('now'))",
-                    (&url, &metadata.title, &metadata.description),
+                    (url, &metadata.title, &metadata.description),
                 )?;
                 let id = tx.last_insert_rowid();
                 add_tags(&tx, id, tags)?;
@@ -319,4 +319,80 @@ fn add_tags(tx: &Transaction, id: i64, tags: &Vec<String>) -> Result<()> {
         bookmark_tag_insert.execute((id, tag))?;
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use std::error::Error;
+
+    use super::*;
+
+    fn get_db() -> rusqlite::Result<Database> {
+        Database::open(":memory:")
+    }
+
+    fn add_bookmark_no_meta(
+        db: &mut Database,
+        url: &str,
+        tags: &Vec<String>,
+    ) -> rusqlite::Result<Bookmark> {
+        db.add_bookmark(
+            url,
+            Metadata {
+                title: None,
+                description: None,
+            },
+            tags,
+        )
+    }
+
+    // rename_tag should create a new tag if necessary
+    #[test]
+    fn test_rename_tag_new() -> Result<(), Box<dyn Error>> {
+        let mut db = get_db()?;
+        add_bookmark_no_meta(&mut db, &"example.org/one", &vec!["tag-one".to_string()])?;
+
+        let tags = db.get_tags(true, false)?;
+        assert_eq!(tags.len(), 1);
+        assert_eq!(tags[0].0, "tag-one");
+        db.rename_tag("tag-one", "tag-three")?;
+        let tags = db.get_tags(true, false)?;
+        assert_eq!(tags.len(), 1);
+        assert_eq!(tags[0].0, "tag-three");
+        Ok(())
+    }
+
+    #[test]
+    fn test_rename_tag_existing() -> Result<(), Box<dyn Error>> {
+        let mut db = get_db()?;
+        add_bookmark_no_meta(&mut db, &"example.org/one", &vec!["tag-one".to_string()])?;
+        add_bookmark_no_meta(&mut db, &"example.org/two", &vec!["tag-two".to_string()])?;
+
+        let tags = db.get_tags(true, false)?;
+        assert_eq!(tags.len(), 2);
+        assert_eq!(tags[0].1, 1);
+        assert_eq!(tags[1].1, 1);
+        db.rename_tag("tag-one", "tag-two")?;
+        let tags = db.get_tags(true, false)?;
+        assert_eq!(tags.len(), 1);
+        assert_eq!(tags[0].0, "tag-two");
+        assert_eq!(tags[0].1, 2);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_rename_tag_nonexistent() -> Result<(), Box<dyn Error>> {
+        let mut db = get_db()?;
+        db.rename_tag("tag-one", "tag-two")?;
+        let tags = db.get_tags(true, false)?;
+        assert_eq!(tags.len(), 0);
+
+        add_bookmark_no_meta(&mut db, &"example.org/two", &vec!["tag-two".to_string()])?;
+        db.rename_tag("tag-one", "tag-two")?;
+        let tags = db.get_tags(true, false)?;
+        assert_eq!(tags.len(), 1);
+
+        Ok(())
+    }
 }
