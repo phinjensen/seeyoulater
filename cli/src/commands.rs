@@ -3,7 +3,7 @@ use std::io::{self, Read, Write};
 use serde_json;
 
 use syl_lib::{
-    commands::{Add, Delete, Error as CommandError, Interface, Result, Search, Tags},
+    commands::{Add, Delete, Error as CommandError, Interface, RenameTag, Result, Search, Tags},
     config::Server,
     db::Bookmark,
     util::singular_plural,
@@ -102,8 +102,13 @@ impl Interface for ServerInterface {
         .map_err(|_| CommandError::SerdeError)
     }
 
-    fn rename_tag(&self, from: &str, to: &str) -> Result<usize> {
-        todo!()
+    fn rename_tag(&self, args: RenameTag) -> Result<usize> {
+        serde_json::from_str(&self.request(
+            "PATCH",
+            &format!("/tags?{}", &serde_qs::to_string(&args).unwrap()),
+            None,
+        )?)
+        .map_err(|_| CommandError::SerdeError)
     }
 
     fn delete(&self, args: Delete) -> Result<usize> {

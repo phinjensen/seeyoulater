@@ -87,11 +87,9 @@ fn main() {
             }
             Err(e) => eprintln!("Error finding tags: {:?}", e),
         },
-        Command::RenameTag(args) => match interface.rename_tag(&args.from, &args.to) {
+        Command::RenameTag(args) => match interface.rename_tag(args) {
             Ok(count) => println!(
-                "Renamed tag '{}' to '{}' on {} {}",
-                &args.from,
-                &args.to,
+                "Renamed tag on {} {}",
                 count,
                 singular_plural("bookmarks", count.try_into().unwrap())
             ),

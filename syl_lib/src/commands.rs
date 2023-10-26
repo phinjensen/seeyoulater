@@ -81,7 +81,7 @@ pub trait Interface {
     fn add(&mut self, args: Add) -> Result<Bookmark>;
     fn find(&self, args: Search) -> Result<Vec<Bookmark>>;
     fn tags(&self, args: Tags) -> Result<Vec<(String, usize)>>;
-    fn rename_tag(&self, from: &str, to: &str) -> Result<usize>;
+    fn rename_tag(&self, args: RenameTag) -> Result<usize>;
     fn delete(&self, args: Delete) -> Result<usize>;
 }
 
@@ -130,8 +130,10 @@ impl Interface for DatabaseInterface {
             .map_err(wrap_db_err)
     }
 
-    fn rename_tag(&self, from: &str, to: &str) -> Result<usize> {
-        self.db.rename_tag(from, to).map_err(wrap_db_err)
+    fn rename_tag(&self, args: RenameTag) -> Result<usize> {
+        self.db
+            .rename_tag(&args.from, &args.to)
+            .map_err(wrap_db_err)
     }
 
     fn delete(&self, args: Delete) -> Result<usize> {

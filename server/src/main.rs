@@ -7,7 +7,7 @@ use syl_lib::commands::DatabaseInterface;
 use syl_lib::config::{Config, ConfigPath};
 use syl_lib::db::Database;
 use syl_lib::web::WebClient;
-use syl_server::routes::{add, delete, search, tags};
+use syl_server::routes::{add, delete, rename_tag, search, tags};
 
 fn main() {
     let config = Config::open(ConfigPath::ServerDefault);
@@ -60,6 +60,9 @@ fn main() {
                         },
                         (GET) (/tags) => {
                             tags(&mut interface.lock().unwrap(), request)
+                        },
+                        (PATCH) (/tags) => {
+                            rename_tag(&mut interface.lock().unwrap(), request)
                         },
                         _ => rouille::Response::empty_404()
                     )
