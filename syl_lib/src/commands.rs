@@ -50,6 +50,12 @@ pub struct Tags {
     pub reverse: bool,
 }
 
+#[derive(Args, Serialize, Deserialize)]
+pub struct RenameTag {
+    pub from: String,
+    pub to: String,
+}
+
 // TODO: Figure out if there's a better way to keep this in sync with the Search API
 #[derive(Args, Serialize, Deserialize)]
 pub struct Delete {
@@ -75,6 +81,7 @@ pub trait Interface {
     fn add(&mut self, args: Add) -> Result<Bookmark>;
     fn find(&self, args: Search) -> Result<Vec<Bookmark>>;
     fn tags(&self, args: Tags) -> Result<Vec<(String, usize)>>;
+    fn rename_tag(&self, args: RenameTag) -> Result<usize>;
     fn delete(&self, args: Delete) -> Result<usize>;
 }
 
@@ -120,6 +127,12 @@ impl Interface for DatabaseInterface {
     fn tags(&self, args: Tags) -> Result<Vec<(String, usize)>> {
         self.db
             .get_tags(args.sort_by_count, args.reverse)
+            .map_err(wrap_db_err)
+    }
+
+    fn rename_tag(&self, args: RenameTag) -> Result<usize> {
+        self.db
+            .rename_tag(&args.from, &args.to)
             .map_err(wrap_db_err)
     }
 

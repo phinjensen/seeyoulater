@@ -1,7 +1,7 @@
 use rouille::input::json_input;
 use rouille::{try_or_400, Request, Response};
 use serde::Serialize;
-use syl_lib::commands::{Add, DatabaseInterface, Delete, Interface, Search, Tags};
+use syl_lib::commands::{Add, DatabaseInterface, Delete, Interface, RenameTag, Search, Tags};
 use urlencoding::decode;
 
 #[derive(Serialize)]
@@ -49,6 +49,18 @@ pub fn tags(interface: &mut DatabaseInterface, request: &Request) -> Response {
         Ok(tags) => Response::json(&tags),
         Err(e) => Response::json(&Error {
             message: format!("Error searching bookmarks: {e:?}"),
+        }),
+    }
+}
+
+pub fn rename_tag(interface: &mut DatabaseInterface, request: &Request) -> Response {
+    let args: RenameTag =
+        serde_qs::from_str(&decode(request.raw_query_string()).expect("invalid UTF-8!"))
+            .expect("Invalid arguments");
+    match interface.rename_tag(args) {
+        Ok(count) => Response::json(&count),
+        Err(e) => Response::json(&Error {
+            message: format!("Error renaming bookmarks: {e:?}"),
         }),
     }
 }

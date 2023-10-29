@@ -2,7 +2,7 @@ use clap::{Parser, Subcommand};
 
 use syl::commands::{confirm_delete, ServerInterface};
 use syl_lib::colors::{color, Color};
-use syl_lib::commands::{Add, DatabaseInterface, Delete, Interface, Search, Tags};
+use syl_lib::commands::{Add, DatabaseInterface, Delete, Interface, RenameTag, Search, Tags};
 use syl_lib::config::{Config, ConfigPath};
 use syl_lib::db::Database;
 use syl_lib::util::singular_plural;
@@ -26,6 +26,8 @@ enum Command {
     #[clap(visible_alias = "t")]
     /// View/edit tags
     Tags(Tags),
+    /// Rename tag
+    RenameTag(RenameTag),
     #[clap(visible_alias = "d")]
     /// Delete bookmark(s) using the same interface as search
     Delete(Delete),
@@ -84,6 +86,14 @@ fn main() {
                 }
             }
             Err(e) => eprintln!("Error finding tags: {:?}", e),
+        },
+        Command::RenameTag(args) => match interface.rename_tag(args) {
+            Ok(count) => println!(
+                "Renamed tag on {} {}",
+                count,
+                singular_plural("bookmarks", count.try_into().unwrap())
+            ),
+            Err(e) => println!("Error: failed to rename tag: {e:?}"),
         },
         Command::Delete(args) => match interface.delete(args) {
             Ok(0) => println!("No bookmarks deleted."),
