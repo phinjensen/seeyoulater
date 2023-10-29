@@ -62,10 +62,11 @@ impl Bookmark {
 
 impl Display for Bookmark {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "[{}]", color(&self.id.to_string(), Color::Blue))?;
         if let Some(title) = &self.title {
-            write!(f, "{}", color(title, Color::BoldGreen))?;
+            write!(f, " {}", color(title, Color::BoldGreen))?;
         } else {
-            write!(f, "{}", color(&self.url, Color::BoldGreen))?;
+            write!(f, " {}", color(&self.url, Color::BoldGreen))?;
         }
         writeln!(f, " {}", self.format_tags())?;
         self.write_url(f)?;
