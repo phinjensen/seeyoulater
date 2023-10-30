@@ -1,8 +1,8 @@
 use clap::{Parser, Subcommand};
 
-use syl::commands::{confirm_delete, ServerInterface};
+use syl::commands::ServerInterface;
 use syl_lib::colors::{color, Color};
-use syl_lib::commands::{Add, DatabaseInterface, Delete, Interface, RenameTag, Search, Tags};
+use syl_lib::commands::{Add, DatabaseInterface, Delete, Edit, Interface, RenameTag, Search, Tags};
 use syl_lib::config::{Config, ConfigPath};
 use syl_lib::db::Database;
 use syl_lib::util::singular_plural;
@@ -23,6 +23,9 @@ enum Command {
     #[clap(visible_alias = "s")]
     /// Search bookmarks
     Search(Search),
+    #[clap(visible_alias = "e")]
+    /// Edit bookmarks
+    Edit(Edit),
     #[clap(visible_alias = "t")]
     /// View/edit tags
     Tags(Tags),
@@ -65,6 +68,10 @@ fn main() {
                 }
             }
             Err(e) => eprintln!("Error searching database: {:?}", e),
+        },
+        Command::Edit(args) => match interface.edit(args) {
+            Ok(bookmark) => println!("{bookmark}"),
+            Err(e) => eprintln!("Error editing bookmark: {:?}", e),
         },
         Command::Tags(args) => match interface.tags(args) {
             Ok(tags) => {

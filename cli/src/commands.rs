@@ -3,7 +3,9 @@ use std::io::{self, Read, Write};
 use serde_json;
 
 use syl_lib::{
-    commands::{Add, Delete, Error as CommandError, Interface, RenameTag, Result, Search, Tags},
+    commands::{
+        Add, Delete, Edit, Error as CommandError, Interface, RenameTag, Result, Search, Tags,
+    },
     config::Server,
     db::Bookmark,
     util::singular_plural,
@@ -109,6 +111,10 @@ impl Interface for ServerInterface {
             None,
         )?)
         .map_err(|_| CommandError::SerdeError)
+    }
+
+    fn edit(&mut self, args: Edit) -> Result<Bookmark> {
+        todo!();
     }
 
     fn delete(&self, args: Delete) -> Result<usize> {

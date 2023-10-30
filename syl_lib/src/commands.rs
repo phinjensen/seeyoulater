@@ -43,6 +43,20 @@ pub struct Search {
 }
 
 #[derive(Args, Serialize, Deserialize)]
+pub struct Edit {
+    /// ID of the bookmark to edit
+    pub id: i64,
+    /// Tag(s) to add to bookmark
+    #[clap(short = 't', long = "tag", value_parser)]
+    #[serde(default)]
+    pub add_tags: Vec<String>,
+    /// Tag(s) to remove from bookmark
+    #[clap(short = 'T', long = "remove-tag", value_parser)]
+    #[serde(default)]
+    pub remove_tags: Vec<String>,
+}
+
+#[derive(Args, Serialize, Deserialize)]
 pub struct Tags {
     #[clap(short = 'c', long, action)]
     pub sort_by_count: bool,
@@ -80,6 +94,7 @@ pub type Result<T, E = Error> = result::Result<T, E>;
 pub trait Interface {
     fn add(&mut self, args: Add) -> Result<Bookmark>;
     fn find(&self, args: Search) -> Result<Vec<Bookmark>>;
+    fn edit(&mut self, args: Edit) -> Result<Bookmark>;
     fn tags(&self, args: Tags) -> Result<Vec<(String, usize)>>;
     fn rename_tag(&self, args: RenameTag) -> Result<usize>;
     fn delete(&self, args: Delete) -> Result<usize>;
@@ -122,6 +137,21 @@ impl Interface for DatabaseInterface {
         self.db
             .search_bookmarks(&args.query, &args.tags, args.all_tags)
             .map_err(wrap_db_err)
+    }
+
+    // TODO: This doesn't handle transactions properly
+    fn edit(&mut self, args: Edit) -> Result<Bookmark> {
+        if !args.add_tags.is_empty() {
+            self.db
+                .add_tags(args.id, &args.add_tags)
+                .map_err(wrap_db_err)?;
+        }
+        if !args.remove_tags.is_empty() {
+            self.db
+                .remove_tags(args.id, &args.remove_tags)
+                .map_err(wrap_db_err)?;
+        }
+        self.db.get_single_bookmark(args.id).map_err(wrap_db_err)
     }
 
     fn tags(&self, args: Tags) -> Result<Vec<(String, usize)>> {

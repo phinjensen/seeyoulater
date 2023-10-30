@@ -250,6 +250,31 @@ impl Database {
         )
     }
 
+    pub fn get_single_bookmark(&self, id: i64) -> Result<Bookmark> {
+        self.connection.query_row(
+            "
+            SELECT id, url, title, description, group_concat(tag_name)
+            FROM bookmark
+            LEFT JOIN bookmark_tag ON bookmark_tag.bookmark_id = bookmark.id
+            WHERE id = ?
+            ",
+            [&id],
+            Bookmark::from_row,
+        )
+    }
+
+    pub fn add_tags(&mut self, id: i64, tags: &Vec<String>) -> Result<()> {
+        let tx = self.connection.transaction()?;
+        add_tags(&tx, id, &tags)?;
+        tx.commit()
+    }
+
+    pub fn remove_tags(&mut self, id: i64, tags: &Vec<String>) -> Result<()> {
+        let tx = self.connection.transaction()?;
+        remove_tags(&tx, id, &tags)?;
+        tx.commit()
+    }
+
     pub fn get_tags(&self, sort_by_count: bool, reverse: bool) -> Result<Vec<(String, usize)>> {
         let mut stmt = self.connection.prepare(
             format!(
@@ -318,6 +343,15 @@ fn add_tags(tx: &Transaction, id: i64, tags: &Vec<String>) -> Result<()> {
         tx.prepare("INSERT OR IGNORE INTO bookmark_tag (bookmark_id, tag_name) VALUES (?, ?)")?;
     for tag in tags {
         bookmark_tag_insert.execute((id, tag))?;
+    }
+    Ok(())
+}
+
+fn remove_tags(tx: &Transaction, id: i64, tags: &Vec<String>) -> Result<()> {
+    let mut bookmark_tag_delete =
+        tx.prepare("DELETE FROM bookmark_tag WHERE bookmark_id = ? AND tag_name = ?")?;
+    for tag in tags {
+        bookmark_tag_delete.execute((id, tag))?;
     }
     Ok(())
 }
