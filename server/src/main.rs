@@ -49,7 +49,7 @@ fn main() {
                     rouille::Response::text("Username or password incorrect").with_status_code(401)
                 } else {
                     router!(request,
-                        (POST) (/add) => {
+                        (POST) (/bookmark) => {
                             add(&mut interface.lock().unwrap(), request)
                         },
                         (PUT) (/bookmark) => {

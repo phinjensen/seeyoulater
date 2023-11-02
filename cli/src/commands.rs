@@ -80,7 +80,7 @@ impl Interface for ServerInterface {
     fn add(&mut self, args: Add) -> Result<Bookmark> {
         serde_json::from_str(&self.request(
             "POST",
-            "/add",
+            "/bookmark",
             Some(&serde_json::to_string(&args).unwrap()),
         )?)
         .map_err(|_| CommandError::SerdeError)
