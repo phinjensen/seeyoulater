@@ -1,7 +1,7 @@
 use rouille::input::json_input;
 use rouille::{try_or_400, Request, Response};
 use serde::Serialize;
-use syl_lib::commands::{Add, DatabaseInterface, Delete, Interface, RenameTag, Search, Tags};
+use syl_lib::commands::{Add, DatabaseInterface, Delete, Edit, Interface, RenameTag, Search, Tags};
 use urlencoding::decode;
 
 #[derive(Serialize)]
@@ -15,6 +15,16 @@ pub fn add(interface: &mut DatabaseInterface, request: &Request) -> Response {
         Ok(bookmark) => Response::json(&bookmark),
         Err(e) => Response::json(&Error {
             message: format!("Error writing bookmark to database: {e:?}"),
+        }),
+    }
+}
+
+pub fn edit(interface: &mut DatabaseInterface, request: &Request) -> Response {
+    let args: Edit = try_or_400!(json_input(request));
+    match interface.edit(args) {
+        Ok(bookmark) => Response::json(&bookmark),
+        Err(e) => Response::json(&Error {
+            message: format!("Error editing bookmark: {e:?}"),
         }),
     }
 }

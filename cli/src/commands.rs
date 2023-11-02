@@ -114,7 +114,12 @@ impl Interface for ServerInterface {
     }
 
     fn edit(&mut self, args: Edit) -> Result<Bookmark> {
-        todo!();
+        serde_json::from_str(&self.request(
+            "PUT",
+            "/bookmark",
+            Some(&serde_json::to_string(&args).unwrap()),
+        )?)
+        .map_err(|_| CommandError::SerdeError)
     }
 
     fn delete(&self, args: Delete) -> Result<usize> {
